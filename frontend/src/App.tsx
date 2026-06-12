@@ -9,6 +9,7 @@ import Studio from '@/pages/Studio';
 import Library from '@/pages/Library';
 import Publish from '@/pages/Publish';
 import NotFound from '@/pages/NotFound';
+import { Sidebar, Header } from '@/components/layout/AppShell';
 
 export default function App() {
   const { session, loading, signOut } = useSession();
@@ -28,7 +29,9 @@ export default function App() {
             element={
               session?.user ? (
                 <div className="relative min-h-screen bg-background text-foreground">
-                  <div className="flex min-h-[calc(100vh-56px)]">
+                  <Header onSignOut={signOut} />
+                  <div className="flex min-h-[calc(100vh-64px)]">
+                    <Sidebar />
                     <main className="flex-1">
                       <Routes>
                         <Route index element={<Projects />} />
