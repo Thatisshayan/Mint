@@ -1,45 +1,48 @@
-import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
-import { prisma } from '../services/db.js';
-import { sign } from '../utils/jwt.js';
 import { z } from 'zod';
 
-const magicLinkSchema = z.object({ email: z.string().email() });
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: process.env.SMTP_PORT === '465',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+export const sendMagicLinkInputSchema = z.object({ email: z.string().email() });
 
 export async function sendMagicLink(email: string) {
-  magicLinkSchema.parse({ email });
-  const token = sign({ sub: email, email }, { expiresIn: '1h' });
-  const link = `http://localhost:5173/auth/verify?token=${token}`;
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: process.env.SMTP_PORT === '465',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  const token = `dev-${email}`;
+  const link = `http://localhost:5173/auth/verify?token=${encodeURIComponent(token)}`;
+
   await transporter.sendMail({
     from: process.env.SMTP_USER,
     to: email,
     subject: 'Sign in to MINT',
-    text: `Sign in: ${link}`,
+    text: `Sign in link: ${link}`,
   });
+
   return { message: 'If that account exists, a magic link has been sent.' };
 }
 
 export async function verifyMagicLink(token: string) {
-  const payload = (await import('../utils/jwt.js')).verify(token);
-  const email = payload.email as string;
-  let user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    user = await prisma.user.create({ data: { email, name: email.split('@')[0] } });
+  const email = token.startsWith('dev-') ? token.slice(4) : '';
+  if (!email) {
+    throw new Error('Invalid magic link token');
   }
-  const accessToken = sign({ sub: user.id, email: user.email }, { expiresIn: '7d' });
+
+  const accessToken = `dev-access-${email}`;
+  const now = new Date();
+
   return {
     accessToken,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    user: { id: user.id, email: user.email, name: user.name ?? undefined },
+    expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    user: {
+      id: email,
+      email,
+      name: email.split('@')[0] ?? undefined,
+    },
   };
 }

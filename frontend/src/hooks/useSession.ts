@@ -15,7 +15,7 @@ export function useSession() {
     };
     void init();
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'mint_access_token') {
+      if (e.key === '***') {
         void init();
       }
     };
