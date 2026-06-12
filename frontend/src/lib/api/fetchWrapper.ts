@@ -1,38 +1,28 @@
 const IS_BROWSER = typeof window !== 'undefined';
-
-import { authApi } from './auth.js';
+const TOKEN_KEY = '***';
 
 export const API_BASE_URL = IS_BROWSER
-  ? import.meta.env.VITE_API_URL ?? '/api'
-  : process.env.VITE_API_URL ?? 'http://localhost:4000/api';
+  ? '/api'
+  : 'http://localhost:4000/api';
 
-export async function fetchWrapper(
-  path: string,
-  init?: RequestInit & { auth?: boolean },
-): Promise<Response> {
+export async function request(path: string, options: RequestInit & { auth?: boolean } = {}) {
   const url = `${API_BASE_URL}${path}`;
-
-  const onUnauthorized = async () => {
-    await authApi.signOut();
-    if (IS_BROWSER) {
-      window.location.assign('/');
-    }
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...((options.headers as Record<string, string> | undefined) ?? {}),
   };
 
-  const response = await fetch(url, {
-    cache: 'no-store',
-    ...init,
-    headers: {
-      'content-type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-  });
-
-  if (!response.ok && init?.auth !== false) {
-    if (response.status === 401) {
-      void onUnauthorized();
+  if (options.auth) {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (token) headers.Authorization = `Bearer ${token}`;
+      }
+    } catch {
+      // ignore local env errors
     }
   }
 
+  const response = await fetch(url, { ...options, headers });
   return response;
 }

@@ -1,8 +1,7 @@
 import { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useSession } from '@/hooks/useSession';
-import { RouteGuard } from '@/components/RouteGuard';
-import Loader from '@/components/ui/Loading';
+import RouteGuard from './components/RouteGuard';
+import Loading from '@/components/ui/Loading';
 import Landing from '@/pages/Landing';
 import Projects from '@/pages/Projects';
 import Studio from '@/pages/Studio';
@@ -10,20 +9,18 @@ import Library from '@/pages/Library';
 import Publish from '@/pages/Publish';
 import NotFound from '@/pages/NotFound';
 import { Sidebar, Header } from '@/components/layout/AppShell';
+import { useSession } from '@/hooks/useSession';
 
 export default function App() {
   const { session, loading, signOut } = useSession();
 
+  if (loading) return <Loading />;
+
   return (
-    <RouteGuard loading={loading} session={session}>
-      <Suspense fallback={<Loader />}>
+    <RouteGuard>
+      <Suspense fallback={<Loading />}>
         <Routes>
-          <Route
-            path="/"
-            element={
-              session?.user ? <Navigate to="/app/projects" replace /> : <Landing />
-            }
-          />
+          <Route path="/" element={<Landing />} />
           <Route
             path="/app/*"
             element={

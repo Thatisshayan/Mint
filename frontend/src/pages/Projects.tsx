@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useCreateProject } from '@/stores/projects';
+import { useCreateProject, useProjects } from '@/stores/projects';
 
 export default function Projects() {
   const [name, setName] = useState('');

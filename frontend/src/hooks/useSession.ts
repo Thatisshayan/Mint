@@ -1,35 +1,42 @@
-import { authApi, type Session } from '@/lib/api/auth';
+import { useEffect, useState } from 'react';
+
+export type Session = {
+  user: { id: string; email: string; name?: string };
+  accessToken: string;
+  expiresAt: string;
+};
+
+const TOKEN_KEY='***';
+const EXPIRY_KEY = 'mint_token_expires_at';
+const USER_KEY = 'mint_user';
 
 export function useSession() {
-  const [session, setSession] = React.useState<Session | null>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
-    let cancelled = false;
-    const init = async () => {
-      const current = await authApi.getSession();
-      if (!cancelled) {
-        setSession(current);
-        setLoading(false);
-      }
-    };
-    void init();
+  const init = () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const expiresAt = localStorage.getItem(EXPIRY_KEY);
+    const user = localStorage.getItem(USER_KEY);
+    setSession(token && expiresAt && user ? { user: JSON.parse(user), accessToken: token, expiresAt } : null);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    init();
     const onStorage = (e: StorageEvent) => {
-      if (e.key === '***') {
-        void init();
-      }
+      if (e.key === localStorage.getItem(TOKEN_KEY)) void init();
     };
     window.addEventListener('storage', onStorage);
-    return () => {
-      cancelled = true;
-      window.removeEventListener('storage', onStorage);
-    };
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  const signOut = React.useCallback(async () => {
-    await authApi.signOut();
+  const signOut = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(EXPIRY_KEY);
+    localStorage.removeItem(USER_KEY);
     setSession(null);
-  }, []);
+  };
 
   return { session, loading, signOut };
 }

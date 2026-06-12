@@ -6,7 +6,6 @@ export function useProjects() {
     queryKey: ['projects'],
     queryFn: async () => {
       const res = await apiClient.get('/api/projects');
-      if (!res.ok) throw new Error('Failed to load projects');
       return res.json();
     },
   });
@@ -16,12 +15,7 @@ export function useCreateProject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { name: string; description?: string }) => {
-      const res = await apiClient.get('/api/projects', {
-        method: 'POST',
-        body: JSON.stringify(input),
-        auth: true,
-      });
-      if (!res.ok) throw new Error('Failed to create project');
+      const res = await apiClient.post('/api/projects', input);
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['projects'] }),

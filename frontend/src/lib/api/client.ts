@@ -1,54 +1,38 @@
-import { authApi } from '@/lib/api/auth';
-import { fetchWrapper } from '@/lib/api/fetchWrapper';
+import { request } from './fetchWrapper';
+import { authApi } from './auth';
+import type { Session } from './auth';
 
 export const apiClient = {
   async get(url: string) {
-    const session = await authApi.getSession();
+    const session: Session | null = await authApi.getSession();
     const headers: HeadersInit = {};
     if (session?.accessToken) {
-      headers['Authorization'] = `Bearer ${session.accessToken}`;
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${session.accessToken}`;
     }
-    return fetchWrapper(url, { headers, auth: true });
+    return request(url, { headers });
   },
-
   async post(url: string, body: unknown) {
-    const session = await authApi.getSession();
-    const headers: HeadersInit = {};
+    const session: Session | null = await authApi.getSession();
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (session?.accessToken) {
-      headers['Authorization'] = `Bearer ${session.accessToken}`;
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${session.accessToken}`;
     }
-    return fetchWrapper(url, {
-      method: 'POST',
-      body: JSON.stringify(body),
-      headers,
-      auth: true,
-    });
+    return request(url, { method: 'POST', body: JSON.stringify(body), headers });
   },
-
   async patch(url: string, body: unknown) {
-    const session = await authApi.getSession();
-    const headers: HeadersInit = {};
+    const session: Session | null = await authApi.getSession();
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (session?.accessToken) {
-      headers['Authorization'] = `Bearer ${session.accessToken}`;
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${session.accessToken}`;
     }
-    return fetchWrapper(url, {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-      headers,
-      auth: true,
-    });
+    return request(url, { method: 'PATCH', body: JSON.stringify(body), headers });
   },
-
   async del(url: string) {
-    const session = await authApi.getSession();
+    const session: Session | null = await authApi.getSession();
     const headers: HeadersInit = {};
     if (session?.accessToken) {
-      headers['Authorization'] = `Bearer ${session.accessToken}`;
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${session.accessToken}`;
     }
-    return fetchWrapper(url, {
-      method: 'DELETE',
-      headers,
-      auth: true,
-    });
+    return request(url, { method: 'DELETE', headers });
   },
 };
