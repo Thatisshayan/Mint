@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  projects      ContentProject[]
+}
+
+model ContentProject {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String
+  description String?
+  audience    String?
+  goal        String?
+  tone        String?
+  platforms   String[]
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       GeneratedPost[]
+  reports     ResearchReport[]
+}
+
+model GeneratedPost {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      ContentProject @relation(fields: [projectId], references: [id])
+  title        String
+  caption      String
+  platform     String
+  status       String   @default("draft")
+  hashtags     String[]
+  imageUrl     String?
+  scheduledAt  DateTime?
+  publishedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ResearchReport {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      ContentProject @relation(fields: [projectId], references: [id])
+  competitor   String
+  findings     String
+  status       String   @default("completed")
+  createdAt    DateTime @default(now())
+}
