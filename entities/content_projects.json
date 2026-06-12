@@ -1,0 +1,21 @@
+{
+  "name": "ContentProject",
+  "description": "A campaign or project concept for content generation",
+  "properties": {
+    "name": { "type": "string", "description": "Project name" },
+    "description": { "type": "string", "description": "Concept description" },
+    "audience": { "type": "string", "description": "Target audience" },
+    "goal": { "type": "string", "description": "Content goal" },
+    "tone": { "type": "string", "description": "Brand tone" },
+    "platforms": { "type": "array", "description": "Target platforms", "items": { "type": "string" } },
+    "strategy_brief": { "type": "string", "description": "The generated marketing strategy brief" },
+    "linked_research_ids": { "type": "array", "description": "IDs of research reports tied to this project", "items": { "type": "string" } },
+    "status": { "type": "string", "description": "Project status: draft, active, completed" }
+  },
+  "rls": {
+    "create": { "created_by": "{{user.email}}" },
+    "read": { "created_by": "{{user.email}}" },
+    "update": { "created_by": "{{user.email}}" },
+    "delete": { "created_by": "{{user.email}}" }
+  }
+}

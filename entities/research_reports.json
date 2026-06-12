@@ -1,0 +1,17 @@
+{
+  "name": "ResearchReport",
+  "description": "A saved research report about a competitor or marketing strategy",
+  "properties": {
+    "project_id": { "type": "string", "description": "Reference to the linked project" },
+    "title": { "type": "string", "description": "The title of the report" },
+    "competitor": { "type": "string", "description": "The name of the competitor or topic researched" },
+    "query": { "type": "string", "description": "The original research query" },
+    "findings": { "type": "string", "description": "The full markdown report findings" }
+  },
+  "rls": {
+    "create": { "created_by": "{{user.email}}" },
+    "read": { "created_by": "{{user.email}}" },
+    "update": { "created_by": "{{user.email}}" },
+    "delete": { "created_by": "{{user.email}}" }
+  }
+}

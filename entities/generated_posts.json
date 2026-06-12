@@ -1,0 +1,21 @@
+{
+  "name": "GeneratedPost",
+  "description": "A generated social media post idea",
+  "properties": {
+    "project_id": { "type": "string", "description": "Reference to the project" },
+    "title": { "type": "string", "description": "Post title or hook" },
+    "caption": { "type": "string", "description": "The post caption" },
+    "visual_direction": { "type": "string", "description": "Direction for the visual content" },
+    "image_prompt": { "type": "string", "description": "Prompt used for image generation" },
+    "image_url": { "type": "string", "description": "URL of the generated image" },
+    "platform": { "type": "string", "description": "Target platform" },
+    "hashtags": { "type": "array", "description": "Suggested hashtags", "items": { "type": "string" } },
+    "status": { "type": "string", "description": "Post status: draft (initial), pending_review (waiting for human approval), approved (ready for queue), rejected (returned with feedback), published (final state)" }
+  },
+  "rls": {
+    "create": { "created_by": "{{user.email}}" },
+    "read": { "created_by": "{{user.email}}" },
+    "update": { "created_by": "{{user.email}}" },
+    "delete": { "created_by": "{{user.email}}" }
+  }
+}
