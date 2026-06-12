@@ -1,5 +1,7 @@
 const IS_BROWSER = typeof window !== 'undefined';
 
+import { authApi } from './auth.js';
+
 export const API_BASE_URL = IS_BROWSER
   ? import.meta.env.VITE_API_URL ?? '/api'
   : process.env.VITE_API_URL ?? 'http://localhost:4000/api';
