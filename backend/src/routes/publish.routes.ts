@@ -11,7 +11,6 @@ publishRoutes.get('/publish/queue', { preHandler: authMiddleware }, async (reque
 
 publishRoutes.post('/publish/publish/:id', { preHandler: authMiddleware }, async (request, reply) => {
   const user = (request as any).user;
-  const id = (request.params as any).id as string;
-  const result = await publishService.publishPost(user.sub, id);
-  return reply.send(result);
+  const id = (request.params as { id: string }).id;
+  return reply.send(await publishService.publishPost(user.sub, id));
 });

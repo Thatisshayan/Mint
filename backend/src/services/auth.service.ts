@@ -1,48 +1,58 @@
-import nodemailer from 'nodemailer';
+import { prisma } from '../services/db.js';
+import { sign, verify } from '../utils/jwt.js';
 import { z } from 'zod';
 
-export const sendMagicLinkInputSchema = z.object({ email: z.string().email() });
+const magicLinkSchema = z.object({ email: z.string().email() });
+const verifyMagicLinkSchema = z.object({ token: z.string().min(1) });
+
+function extractEmailFromMagicLink(token: string) {
+  if (!token.startsWith('dev-')) throw new Error('Invalid magic link token');
+  const email = token.slice(4).trim();
+  if (!email) throw new Error('Invalid magic link token');
+  return email;
+}
+
+async function resolveUser(email: string) {
+  return prisma.user.upsert({
+    where: { email },
+    update: {},
+    create: { email },
+  });
+}
 
 export async function sendMagicLink(email: string) {
+  magicLinkSchema.parse({ email });
+  const token = `dev-${email}`;
+  const link = `http://localhost:5173/auth/verify?token=${encodeURIComponent(token)}`;
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
-    secure: process.env.SMTP_PORT === '465',
+    secure: String(process.env.SMTP_PORT) === '465',
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
   });
 
-  const token = `dev-${email}`;
-  const link = `http://localhost:5173/auth/verify?token=${encodeURIComponent(token)}`;
-
   await transporter.sendMail({
-    from: process.env.SMTP_USER,
+    from: process.env.EMAIL_FROM ?? process.env.SMTP_USER,
     to: email,
     subject: 'Sign in to MINT',
     text: `Sign in link: ${link}`,
   });
 
-  return { message: 'If that account exists, a magic link has been sent.' };
+  return { message: 'Magic link sent.' };
 }
 
 export async function verifyMagicLink(token: string) {
-  const email = token.startsWith('dev-') ? token.slice(4) : '';
-  if (!email) {
-    throw new Error('Invalid magic link token');
-  }
-
-  const accessToken = `dev-access-${email}`;
-  const now = new Date();
-
+  verifyMagicLinkSchema.parse({ token });
+  const email = extractEmailFromMagicLink(token);
+  const user = await resolveUser(email);
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const accessToken = sign({ sub: user.id, email: user.email }, { expiresIn: '7d' });
   return {
     accessToken,
-    expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    user: {
-      id: email,
-      email,
-      name: email.split('@')[0] ?? undefined,
-    },
+    expiresAt,
+    user: { id: user.id, email: user.email, name: email.split('@')[0] },
   };
 }

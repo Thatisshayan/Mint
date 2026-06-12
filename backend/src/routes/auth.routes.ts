@@ -1,27 +1,31 @@
 import { Router } from 'fastify';
-import { authMiddleware } from '../middleware/auth.js';
-import * as authService from '../services/auth.service.js';
+import { sendMagicLink, verifyMagicLink } from '../services/auth.service.js';
+import { z } from 'zod';
+
+const sendMagicLinkSchema = z.object({
+  body: z.object({ email: z.string().email() }),
+});
+
+const verifyMagicLinkSchema = z.object({
+  body: z.object({ token: z.string().min(1) }),
+});
 
 export const authRoutes = new Router<{ prefix?: string }>();
 
 authRoutes.post('/magic-link', async (request, reply) => {
-  const { email } = request.body as { email: string };
-  await authService.sendMagicLink(email);
-  return reply.send({ message: 'If that account exists, a magic link has been sent.' });
+  const result = sendMagicLinkSchema.safeParse(request.body);
+  if (!result.success) {
+    return reply.status(400).send({ message: result.error.message });
+  }
+  const { email } = result.data.body;
+  return sendMagicLink(email);
 });
 
 authRoutes.post('/verify', async (request, reply) => {
-  const { token } = request.body as { token: string };
-  const result = await authService.verifyMagicLink(token);
-  return reply.send(result);
-});
-
-authRoutes.get('/me', { preHandler: authMiddleware }, async (request) => {
-  const user = (request as any).user;
-  return { user: { id: user.sub, email: user.email } };
-});
-
-authRoutes.post('/logout', { preHandler: authMiddleware }, async (request, reply) => {
-  // Stateless JWT logout: client removes token
-  return reply.send({ message: 'Logged out' });
+  const result = verifyMagicLinkSchema.safeParse(request.body);
+  if (!result.success) {
+    return reply.status(400).send({ message: result.error.message });
+  }
+  const { token } = result.data.body;
+  return verifyMagicLink(token);
 });
