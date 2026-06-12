@@ -1,13 +1,6 @@
-import { Navigate } from 'react-router-dom';
-import { authApi } from '@/lib/api/auth';
+import { Navigate, useLocation, Outlet } from 'react-router-dom';
+import { useSession } from '@/hooks/useSession';
 
-type GuardProps = {
-  loading: boolean;
-  session: { user: { id: string; email: string; name?: string } } | null;
-  children: React.ReactNode;
-};
-
-export default function RouteGuard({ loading, session, children }: GuardProps) {
-  if (loading) return <div className="min-h-screen grid place-items-center text-muted-foreground">Loading</div>;
+export default function RouteGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
