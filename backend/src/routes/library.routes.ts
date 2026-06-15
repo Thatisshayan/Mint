@@ -1,28 +1,41 @@
-import { Router } from 'fastify';
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware } from '../middleware/auth.js';
-import * as libraryService from '../services/library.service.js';
+import { listPosts, updatePost } from '../services/library.service.js';
 import { z } from 'zod';
 
+type AuthenticatedUser = { sub: string; email?: string };
+
 const updatePostSchema = z.object({
-  body: z.object({
-    status: z.enum(['draft', 'queued', 'pending_review', 'approved', 'published']).optional(),
-  }),
+  body: z.object({ status: z.string().optional() }),
 });
 
-export const libraryRoutes = new Router<{ prefix?: string }>();
+const idZod = z.object({ params: z.object({ id: z.string().min(1) }) });
 
-libraryRoutes.get('/library/posts', { preHandler: authMiddleware }, async (request) => {
-  const user = (request as any).user;
-  const projectId = (request.query as any).projectId as string | undefined;
-  return libraryService.listPosts(user.sub, projectId);
-});
+function getAuthenticatedUser(request: FastifyRequest): AuthenticatedUser {
+  return (request as unknown as { user: AuthenticatedUser }).user;
+}
 
-libraryRoutes.patch('/library/posts/:id', { preHandler: authMiddleware }, async (request, reply) => {
-  const parsed = updatePostSchema.safeParse(request.body);
-  if (!parsed.success) {
-    return reply.status(400).send({ message: parsed.error.message });
-  }
-  const user = (request as any).user;
-  const id = (request.params as { id: string }).id;
-  return libraryService.updatePost(user.sub, id, parsed.data.body);
-});
+export async function libraryRoutes(fastify: FastifyInstance) {
+  fastify.get(
+    '/library/posts',
+    { preHandler: authMiddleware },
+    async (request: FastifyRequest) => listPosts(getAuthenticatedUser(request).sub),
+  );
+
+  fastify.patch(
+    '/library/posts/:id',
+    { preHandler: authMiddleware },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsed = idZod.safeParse(request.params);
+      if (!parsed.success) {
+        return reply.status(400).send({ message: parsed.error.message });
+      }
+      const { id } = parsed.data.params;
+      const bodyParsed = updatePostSchema.safeParse(request.body);
+      if (!bodyParsed.success) {
+        return reply.status(400).send({ message: bodyParsed.error.message });
+      }
+      return updatePost(getAuthenticatedUser(request).sub, id, bodyParsed.data.body);
+    },
+  );
+}

@@ -1,31 +1,26 @@
-import { Router } from 'fastify';
+import { FastifyInstance, FastifyReply } from 'fastify';
 import { sendMagicLink, verifyMagicLink } from '../services/auth.service.js';
 import { z } from 'zod';
 
-const sendMagicLinkSchema = z.object({
-  body: z.object({ email: z.string().email() }),
-});
+const sendMagicLinkSchema = z.object({ body: z.object({ email: z.string().email() }) });
+const verifyMagicLinkSchema = z.object({ body: z.object({ token: z.string().min(1) }) });
 
-const verifyMagicLinkSchema = z.object({
-  body: z.object({ token: z.string().min(1) }),
-});
+export async function authRoutes(fastify: FastifyInstance) {
+  fastify.post('/magic-link', async (request, reply: FastifyReply) => {
+    const parsed = sendMagicLinkSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ message: parsed.error.message });
+    }
+    const { email } = parsed.data.body;
+    return sendMagicLink(email);
+  });
 
-export const authRoutes = new Router<{ prefix?: string }>();
-
-authRoutes.post('/magic-link', async (request, reply) => {
-  const result = sendMagicLinkSchema.safeParse(request.body);
-  if (!result.success) {
-    return reply.status(400).send({ message: result.error.message });
-  }
-  const { email } = result.data.body;
-  return sendMagicLink(email);
-});
-
-authRoutes.post('/verify', async (request, reply) => {
-  const result = verifyMagicLinkSchema.safeParse(request.body);
-  if (!result.success) {
-    return reply.status(400).send({ message: result.error.message });
-  }
-  const { token } = result.data.body;
-  return verifyMagicLink(token);
-});
+  fastify.post('/verify', async (request, reply: FastifyReply) => {
+    const parsed = verifyMagicLinkSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ message: parsed.error.message });
+    }
+    const { token } = parsed.data.body;
+    return verifyMagicLink(token);
+  });
+}

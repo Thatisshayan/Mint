@@ -1,19 +1,28 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { z } from 'zod';
 
-export const sendMagicLinkInputSchema = z.object({ email: z.string().email() });
+type AuthenticatedUser = { sub: string; email?: string };
 
-export const verifyMagicLinkInputSchema = z.object({ token: z.string().min(1) });
+type JwtPlugin = {
+  verify(token: string): AuthenticatedUser;
+};
 
-export async function authMiddleware(request: FastifyRequest, reply: FastifyReply) {
+export async function authMiddleware(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
   const auth = request.headers.authorization;
   if (!auth?.startsWith('Bearer ')) {
     return reply.status(401).send({ message: 'Missing authorization' });
   }
   try {
     const token = auth.slice('Bearer '.length);
-    const decoded = (request as any).server.jwt.verify<{ sub: string; email?: string }>(token);
-    (request as any).user = decoded;
+    const maybeJwt = (request.server as { jwt?: JwtPlugin }).jwt;
+    if (typeof maybeJwt?.verify === 'function') {
+      const decoded = maybeJwt.verify(token);
+      (request as unknown as { user: AuthenticatedUser }).user = decoded;
+    } else {
+      return reply.status(401).send({ message: 'Invalid token' });
+    }
   } catch {
     return reply.status(401).send({ message: 'Invalid token' });
   }

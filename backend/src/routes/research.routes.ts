@@ -1,28 +1,37 @@
-import { Router } from 'fastify';
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware } from '../middleware/auth.js';
-import * as researchService from '../services/research.service.js';
+import { listResearch, createResearch } from '../services/research.service.js';
 import { z } from 'zod';
+
+type AuthenticatedUser = { sub: string; email?: string };
 
 const createResearchSchema = z.object({
   body: z.object({
     projectId: z.string().min(1),
-    query: z.string().min(1).max(500),
+    query: z.string().min(2).max(500),
   }),
 });
 
-export const researchRoutes = new Router<{ prefix?: string }>();
+function getAuthenticatedUser(request: FastifyRequest): AuthenticatedUser {
+  return (request as unknown as { user: AuthenticatedUser }).user;
+}
 
-researchRoutes.get('/research', { preHandler: authMiddleware }, async (request) => {
-  const user = (request as any).user;
-  const projectId = (request.query as any).projectId as string | undefined;
-  return researchService.listResearch(user.sub, projectId);
-});
+export async function researchRoutes(fastify: FastifyInstance) {
+  fastify.get(
+    '/research',
+    { preHandler: authMiddleware },
+    async (request: FastifyRequest) => listResearch(getAuthenticatedUser(request).sub),
+  );
 
-researchRoutes.post('/research', { preHandler: authMiddleware }, async (request, reply) => {
-  const parsed = createResearchSchema.safeParse(request.body);
-  if (!parsed.success) {
-    return reply.status(400).send({ message: parsed.error.message });
-  }
-  const user = (request as any).user;
-  return reply.status(201).send(await researchService.createResearch(user.sub, parsed.data.body));
-});
+  fastify.post(
+    '/research',
+    { preHandler: authMiddleware },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsed = createResearchSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ message: parsed.error.message });
+      }
+      return createResearch(getAuthenticatedUser(request).sub, parsed.data.body);
+    },
+  );
+}

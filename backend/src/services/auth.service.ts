@@ -1,6 +1,7 @@
-import { prisma } from '../services/db.js';
-import { sign, verify } from '../utils/jwt.js';
+import { prisma } from './db.js';
+import nodemailer from 'nodemailer';
 import { z } from 'zod';
+import { sign } from '../utils/jwt.js';
 
 const magicLinkSchema = z.object({ email: z.string().email() });
 const verifyMagicLinkSchema = z.object({ token: z.string().min(1) });
@@ -34,12 +35,15 @@ export async function sendMagicLink(email: string) {
     },
   });
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM ?? process.env.SMTP_USER,
-    to: email,
-    subject: 'Sign in to MINT',
-    text: `Sign in link: ${link}`,
-  });
+  const hasMailConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+  if (hasMailConfig) {
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM ?? process.env.SMTP_USER,
+      to: email,
+      subject: 'Sign in to MINT',
+      text: `Sign in link: ${link}`,
+    });
+  }
 
   return { message: 'Magic link sent.' };
 }

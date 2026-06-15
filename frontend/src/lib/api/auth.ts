@@ -1,5 +1,4 @@
 import { request } from './fetchWrapper';
-import { useState } from 'react';
 
 export type Session = {
   user: { id: string; email: string; name?: string };
@@ -7,51 +6,9 @@ export type Session = {
   expiresAt: string;
 };
 
-const TOKEN_KEY = '***';
-const EXPIRY_KEY = 'mint_token_expires_at';
-const USER_KEY = 'mint_user';
-
-export function useSession() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const init = () => {
-    try {
-      const token = typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
-      const expiresAt = typeof localStorage !== 'undefined' ? localStorage.getItem(EXPIRY_KEY) : null;
-      const user = typeof localStorage !== 'undefined' ? localStorage.getItem(USER_KEY) : null;
-      setSession(token && expiresAt && user ? { user: JSON.parse(user), accessToken: token, expiresAt } : null);
-    } catch {
-      setSession(null);
-    }
-    setLoading(false);
-  };
-
-  if (typeof window !== 'undefined') {
-    useState(() => {
-      const onStorage = (e: StorageEvent) => {
-        if (e.key === TOKEN_KEY) {
-          init();
-        }
-      };
-      window.addEventListener('storage', onStorage);
-      return () => window.removeEventListener('storage', onStorage);
-    });
-  }
-
-  return {
-    session,
-    loading,
-    signOut: () => {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(EXPIRY_KEY);
-        localStorage.removeItem(USER_KEY);
-      }
-      setSession(null);
-    },
-  };
-}
+export const TOKEN_KEY = 'mint_token';
+export const EXPIRY_KEY = 'mint_token_expires_at';
+export const USER_KEY = 'mint_user';
 
 export const authApi = {
   async getSession(): Promise<Session | null> {
@@ -66,11 +23,11 @@ export const authApi = {
     }
   },
   async signInWithMagicLink(email: string) {
-    const response = await request('/auth/magic-link', { method: 'POST', body: JSON.stringify({ email }) });
+    const response = await request('/magic-link', { method: 'POST', body: JSON.stringify({ email }) });
     return response.json();
   },
   async verifyMagicLink(token: string) {
-    const response = await request('/auth/verify', { method: 'POST', body: JSON.stringify({ token }) });
+    const response = await request('/verify', { method: 'POST', body: JSON.stringify({ token }) });
     const result = await response.json();
     if (result?.accessToken && result?.expiresAt && result?.user) {
       try {

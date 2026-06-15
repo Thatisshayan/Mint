@@ -1,5 +1,6 @@
+import { TOKEN_KEY } from '@/lib/api/auth';
+
 const IS_BROWSER = typeof window !== 'undefined';
-const TOKEN_KEY = '***';
 
 export const API_BASE_URL = IS_BROWSER
   ? '/api'

@@ -1,7 +1,7 @@
 import { prisma } from './db.js';
 import { z } from 'zod';
 
-export const createProjectSchema = z.object({
+const createProjectSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   audience: z.string().max(200).optional(),
@@ -12,8 +12,12 @@ export const createProjectSchema = z.object({
 
 export async function createProject(userId: string, input: unknown) {
   const data = createProjectSchema.parse(input);
+  const normalized = {
+    ...data,
+    platforms: data.platforms ? [...data.platforms] : undefined,
+  };
   return prisma.contentProject.create({
-    data: { ...data, userId },
+    data: { ...normalized, userId },
   });
 }
 

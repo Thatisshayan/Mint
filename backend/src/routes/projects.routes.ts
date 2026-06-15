@@ -1,37 +1,64 @@
-import { Router } from 'fastify';
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware } from '../middleware/auth.js';
-import * as projectService from '../services/project.service.js';
+import {
+  createProject,
+  listProjects,
+  getProject,
+} from '../services/project.service.js';
 import { z } from 'zod';
+
+type AuthenticatedUser = { sub: string; email?: string };
 
 const createProjectSchema = z.object({
   body: z.object({
     name: z.string().min(1).max(200),
     description: z.string().max(2000).optional(),
     audience: z.string().max(200).optional(),
-    goal: z.string().max(2000).optional(),
+    goal: z.string().max(200).optional(),
     tone: z.string().max(100).optional(),
     platforms: z.array(z.string()).optional(),
   }),
 });
 
-export const projectRoutes = new Router<{ prefix?: string }>();
+const idZod = z.object({ id: z.string().min(1) });
 
-projectRoutes.get('/', { preHandler: authMiddleware }, async (request) => {
-  const user = (request as any).user;
-  return projectService.listProjects(user.sub);
-});
+function getAuthenticatedUser(request: FastifyRequest): AuthenticatedUser {
+  return (request as unknown as { user: AuthenticatedUser }).user;
+}
 
-projectRoutes.get('/:id', { preHandler: authMiddleware }, async (request) => {
-  const user = (request as any).user;
-  const id = (request.params as { id: string }).id;
-  return projectService.getProject(user.sub, id);
-});
+export async function projectRoutes(fastify: FastifyInstance) {
+  fastify.get(
+    '/projects',
+    { preHandler: authMiddleware },
+    async (request: FastifyRequest) => listProjects(getAuthenticatedUser(request).sub),
+  );
 
-projectRoutes.post('/', { preHandler: authMiddleware }, async (request, reply) => {
-  const parsed = createProjectSchema.safeParse(request.body);
-  if (!parsed.success) {
-    return reply.status(400).send({ message: parsed.error.message });
-  }
-  const user = (request as any).user;
-  return reply.status(201).send(await projectService.createProject(user.sub, parsed.data.body));
-});
+  fastify.get(
+    '/projects/:id',
+    { preHandler: authMiddleware },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsed = idZod.safeParse(request.params);
+      if (!parsed.success) {
+        return reply.status(400).send({ message: parsed.error.message });
+      }
+      const { id } = parsed.data;
+      const project = await getProject(getAuthenticatedUser(request).sub, id);
+      if (!project) {
+        return reply.status(404).send({ message: 'Project not found' });
+      }
+      return project;
+    },
+  );
+
+  fastify.post(
+    '/projects',
+    { preHandler: authMiddleware },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsed = createProjectSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ message: parsed.error.message });
+      }
+      return createProject(getAuthenticatedUser(request).sub, parsed.data.body);
+    },
+  );
+}

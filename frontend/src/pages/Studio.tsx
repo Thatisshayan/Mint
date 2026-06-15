@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useGenerateIdeas } from '@/stores/studio';
+
+type Idea = {
+  id: string;
+  title: string;
+  brief: string;
+};
 
 export default function Studio() {
   const [brief, setBrief] = useState('');
   const generate = useGenerateIdeas();
   const [projectId] = useState('demo-project');
-  const [ideas, setIdeas] = useState<any[]>([]);
+  const [ideas, setIdeas] = useState<Idea[]>([]);
 
-  const handleGenerate = async (e: React.FormEvent) => {
+  const handleGenerate = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const result = await generate.mutateAsync({ projectId, brief });
     setIdeas(result.ideas ?? []);

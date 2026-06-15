@@ -1,5 +1,11 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useCreateProject, useProjects } from '@/stores/projects';
+
+type Project = {
+  id: string;
+  name: string;
+  description?: string | null;
+};
 
 export default function Projects() {
   const [name, setName] = useState('');
@@ -7,7 +13,7 @@ export default function Projects() {
   const { data: projects, isLoading } = useProjects();
   const create = useCreateProject();
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreate = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     await create.mutateAsync({ name, description });
     setName('');
@@ -47,7 +53,7 @@ export default function Projects() {
 
       <div className="mt-10 grid gap-4">
         {isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
-        {(projects ?? []).map((project: any) => (
+        {(projects ?? []).map((project: Project) => (
           <div key={project.id} className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
             <div className="text-base font-bold text-white">{project.name}</div>
             <div className="text-sm text-muted-foreground">{project.description}</div>
