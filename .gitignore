@@ -34,3 +34,7 @@ bun.lockb
 # OS / misc
 .DS_Store
 Thumbs.db
+
+# SQLite local DB
+**/mint.sqlite
+**/mint.sqlite-journal
