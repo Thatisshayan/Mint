@@ -1,32 +1,15 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { authMiddleware } from '../middleware/auth.js';
-import { getQueue, publishPost } from '../services/publish.service.js';
-import { z } from 'zod';
+import fastify from 'fastify';
 
-type AuthenticatedUser = { sub: string; email?: string };
-
-const idZod = z.object({ params: z.object({ id: z.string().min(1) }) });
-
-function getAuthenticatedUser(request: FastifyRequest): AuthenticatedUser {
-  return (request as unknown as { user: AuthenticatedUser }).user;
-}
-
-export async function publishRoutes(fastify: FastifyInstance) {
-  fastify.get(
-    '/publish/queue',
-    { preHandler: authMiddleware },
-    async (request: FastifyRequest) => getQueue(getAuthenticatedUser(request).sub),
-  );
-
-  fastify.post(
-    '/publish/:id',
-    { preHandler: authMiddleware },
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const parsed = idZod.safeParse(request.params);
-      if (!parsed.success) {
-        return reply.status(400).send({ error: parsed.error.message });
-      }
-      return publishPost(getAuthenticatedUser(request).sub, parsed.data.params.id);
-    },
-  );
+export async function publishRoutes(fastify: any) {
+  fastify.post('/publish', async (request: any, reply: any) => {
+    const user = request.user;
+    if (!user) return reply.status(401).send({ error: 'UNAUTHORIZED' });
+    const body = request.body as { postId?: string; platform?: string };
+    return {
+      success: true,
+      postId: body.postId || 'local-' + Date.now(),
+      platform: body.platform || 'generic',
+      status: 'queued',
+    };
+  });
 }

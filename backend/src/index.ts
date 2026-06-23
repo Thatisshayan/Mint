@@ -1,39 +1,63 @@
-import * as dotenv from 'dotenv';
-import Fastify from 'fastify';
+import fastify from 'fastify';
 import cors from '@fastify/cors';
-import jwt from '@fastify/jwt';
-import { authRoutes } from './routes/auth.routes.js';
-import { projectRoutes } from './routes/projects.routes.js';
-import { researchRoutes } from './routes/research.routes.js';
-import { studioRoutes } from './routes/studio.routes.js';
-import { libraryRoutes } from './routes/library.routes.js';
-import { publishRoutes } from './routes/publish.routes.js';
+import { config } from './config.js';
 
-dotenv.config();
+export async function buildApp() {
+  const app = fastify({
+    logger: {
+      level: config.env === 'production' ? 'info' : 'debug',
+      transport: config.env === 'production' ? undefined : {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          ignore: 'pid,hostname',
+          translateTime: 'SYS:standard',
+        },
+      },
+    },
+  });
 
-const app = Fastify({ logger: process.env.NODE_ENV !== 'test' });
+  await app.register(cors, { origin: true });
 
-app.register(cors, { origin: true });
-app.register(jwt, { secret: process.env.JWT_SECRET ?? 'dev' });
+  app.get('/health', async () => ({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    env: config.env,
+  }));
 
-app.get('/health', async () => ({ ok: true }));
+  app.setErrorHandler((err: any, request: any, reply: any) => {
+    (request.log as any).error(err);
+    reply.status(err.statusCode || 500).send({
+      error: err.code || 'INTERNAL_ERROR',
+      message: err.message || 'Something went wrong',
+    });
+  });
 
-app.register(authRoutes, { prefix: '/api' });
-app.register(projectRoutes, { prefix: '/api' });
-app.register(researchRoutes, { prefix: '/api' });
-app.register(studioRoutes, { prefix: '/api' });
-app.register(libraryRoutes, { prefix: '/api' });
-app.register(publishRoutes, { prefix: '/api' });
+  await app.register(require('@fastify/jwt')).then((reg: any) => reg.default ?? reg);
+  app.decorate('authenticate', async (request: any, reply: any) => {
+    try {
+      await request.jwtVerify();
+    } catch {
+      return reply.status(401).send({ error: 'UNAUTHORIZED', message: 'Invalid token' });
+    }
+  });
 
-const start = async () => {
-  try {
-    await app.listen({ port: Number(process.env.PORT ?? 4000), host: '0.0.0.0' });
-  } catch (err) {
-    app.log.error(err);
-    process.exit(1);
-  }
-};
+  await app.register(require('./routes/auth.routes.js'));
+  await app.register(require('./routes/projects.routes.js'), { prefix: '/api' });
+  await app.register(require('./routes/research.routes.js'), { prefix: '/api' });
+  await app.register(require('./routes/studio.routes.js'), { prefix: '/api' });
+  await app.register(require('./routes/library.routes.js'), { prefix: '/api' });
+  await app.register(require('./routes/publish.routes.js'), { prefix: '/api' });
 
-void start();
+  const start = async () => {
+    try {
+      await app.listen({ port: Number(process.env.PORT ?? 4000), host: '0.0.0.0' });
+    } catch (err) {
+      app.log.error(err);
+      process.exit(1);
+    }
+  };
+  void start();
 
-export { app };
+  return app;
+}

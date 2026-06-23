@@ -2,22 +2,14 @@ import { prisma } from './db.js';
 import { z } from 'zod';
 
 const createProjectSchema = z.object({
-  name: z.string().min(1).max(200),
+  title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
-  audience: z.string().max(200).optional(),
-  goal: z.string().max(200).optional(),
-  tone: z.string().max(100).optional(),
-  platforms: z.array(z.string()).optional(),
 });
 
 export async function createProject(userId: string, input: unknown) {
   const data = createProjectSchema.parse(input);
-  const normalized = {
-    ...data,
-    platforms: data.platforms ? [...data.platforms] : undefined,
-  };
   return prisma.contentProject.create({
-    data: { ...normalized, userId },
+    data: { ...(data as any), userId } as any,
   });
 }
 

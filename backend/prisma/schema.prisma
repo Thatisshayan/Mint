@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -11,51 +11,53 @@ model User {
   id            String    @id @default(cuid())
   email         String    @unique
   name          String?
-  emailVerified Boolean   @default(false)
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  projects      ContentProject[]
+
+  contentProjects     ContentProject[]
+  generatedPosts      GeneratedPost[]
+  researchReports     ResearchReport[]
 }
 
 model ContentProject {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  name        String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
   description String?
-  audience    String?
-  goal        String?
-  tone        String?
-  platforms   String[]
-  status      String   @default("active")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  posts       GeneratedPost[]
-  reports     ResearchReport[]
+  status      String    @default("draft")
+  metadata    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model GeneratedPost {
-  id           String   @id @default(cuid())
-  projectId    String
-  project      ContentProject @relation(fields: [projectId], references: [id])
-  title        String
-  caption      String
-  platform     String
-  status       String   @default("draft")
-  hashtags     String[]
-  imageUrl     String?
-  scheduledAt  DateTime?
-  publishedAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId     String?
+  platform      String
+  content       String
+  status        String    @default("draft")
+  scheduledAt   DateTime?
+  metadata      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model ResearchReport {
-  id           String   @id @default(cuid())
-  projectId    String
-  project      ContentProject @relation(fields: [projectId], references: [id])
-  competitor   String
-  findings     String
-  status       String   @default("completed")
-  createdAt    DateTime @default(now())
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId   String?
+  query       String
+  source      String
+  summary     String
+  citations   String?
+  metadata    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }

@@ -1,12 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 
-let _prisma: PrismaClient | null = null;
+export const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+});
 
-export const db = {
-  get client() {
-    if (!_prisma) _prisma = new PrismaClient();
-    return _prisma;
-  },
-};
+export async function connectDb() {
+  await prisma.$connect();
+}
 
-export const prisma = db.client;
+export async function disconnectDb() {
+  await prisma.$disconnect();
+}

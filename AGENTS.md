@@ -66,4 +66,4 @@ MINT/
 
 ## Status
 
-Early MVP scaffold. Core AI features (OpenAI, ComfyUI) are stubs. Need tests, Docker, CI/CD. 15 bugs found in latest audit, most fixed.
+Early MVP scaffold. Core AI features (OpenAI, ComfyUI) are stubs. CI is in place. Need tests and Docker. 15 bugs found in latest audit, most fixed.
