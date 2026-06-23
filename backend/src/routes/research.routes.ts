@@ -1,6 +1,6 @@
 import fastify from 'fastify';
 
-export async function researchRoutes(fastify: any) {
+export default async function researchRoutes(fastify: any) {
   fastify.get('/research', async () => ({ reports: [] }));
 
   fastify.post('/research', async (request: any, reply: any) => {

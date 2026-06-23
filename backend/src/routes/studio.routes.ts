@@ -2,7 +2,7 @@ import fastify from 'fastify';
 import { z } from 'zod';
 import { generateWithOllama } from '../services/studio.service.js';
 
-export async function studioRoutes(fastify: any) {
+export default async function studioRoutes(fastify: any) {
   fastify.post('/studio/generate', async (request: any, reply: any) => {
     const body = request.body as { prompt?: string; model?: string };
     return {

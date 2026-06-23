@@ -21,11 +21,12 @@ export async function buildApp() {
     });
   });
 
-  await app.register(require('./routes/projects.routes.js'), { prefix: '/api' });
-  await app.register(require('./routes/research.routes.js'), { prefix: '/api' });
-  await app.register(require('./routes/studio.routes.js'), { prefix: '/api' });
-  await app.register(require('./routes/library.routes.js'), { prefix: '/api' });
-  await app.register(require('./routes/publish.routes.js'), { prefix: '/api' });
+  await app.register((await import('./routes/auth.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/projects.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/research.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/studio.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/library.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/publish.routes.js')).default, { prefix: '/api' });
 
   const start = async () => {
     try {

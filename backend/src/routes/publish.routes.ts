@@ -1,6 +1,6 @@
 import fastify from 'fastify';
 
-export async function publishRoutes(fastify: any) {
+export default async function publishRoutes(fastify: any) {
   fastify.post('/publish', async (request: any, reply: any) => {
     const body = request.body as { postId?: string; platform?: string };
     return {

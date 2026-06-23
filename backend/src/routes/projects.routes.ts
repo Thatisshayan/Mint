@@ -1,6 +1,6 @@
 import fastify from 'fastify';
 
-export async function projectRoutes(fastify: any) {
+export default async function projectRoutes(fastify: any) {
   fastify.get('/projects', async () => ({ projects: [] }));
 
   fastify.post('/projects', async (request: any, reply: any) => {
