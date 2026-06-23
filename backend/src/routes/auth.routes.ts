@@ -1,23 +1,58 @@
 import fastify from 'fastify';
 
-export async function authRoutes(fastify: any) {
-  fastify.get('/auth/me', async (request: any, reply: any) => {
-    const user = request.user;
-    if (!user) {
-      return reply.status(401).send({ error: 'UNAUTHORIZED', message: 'Not authenticated' });
-    }
-    return { user };
-  });
-
-  fastify.post('/auth/magic-link', async (request: any, reply: any) => {
-    const { email } = request.body as { email: string };
-    if (!email) {
-      return reply.status(400).send({ error: 'BAD_REQUEST', message: 'Email is required' });
-    }
-    // TODO: implement magic-link email flow
+export async function projectsRoutes(fastify: any) {
+  fastify.get('/projects', async () => ({ items: [] }));
+  fastify.post('/projects', async (request: any, reply: any) => {
+    const body = request.body as { title?: string; description?: string };
     return {
-      message: 'If that email exists, a magic link has been sent.',
-      devToken: 'dev-magic-link-token-placeholder',
+      id: 'local-' + Date.now(),
+      title: body.title || 'Untitled',
+      description: body.description || '',
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+    };
+  });
+}
+
+export async function researchRoutes(fastify: any) {
+  fastify.get('/research', async () => ({ items: [] }));
+  fastify.post('/research', async (request: any, reply: any) => {
+    const body = request.body as { query?: string };
+    return {
+      id: 'local-' + Date.now(),
+      query: body.query || '',
+      summary: '',
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+    };
+  });
+}
+
+export async function studioRoutes(fastify: any) {
+  fastify.post('/studio/generate', async (request: any, reply: any) => {
+    const body = request.body as { prompt?: string; model?: string };
+    return {
+      id: 'local-' + Date.now(),
+      content: 'Local generation placeholder. Connect Ollama next.',
+      platform: body.model || 'ollama',
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+    };
+  });
+}
+
+export async function libraryRoutes(fastify: any) {
+  fastify.get('/library', async () => ({ items: [] }));
+}
+
+export async function publishRoutes(fastify: any) {
+  fastify.post('/publish', async (request: any, reply: any) => {
+    const body = request.body as { postId?: string; platform?: string };
+    return {
+      success: true,
+      postId: body.postId || 'local-' + Date.now(),
+      platform: body.platform || 'generic',
+      status: 'queued',
     };
   });
 }

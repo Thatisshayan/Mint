@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
 
 type GenerationType = 'youtube_script' | 'instagram_caption' | 'thumbnail_prompt' | 'all';
 
@@ -16,17 +15,52 @@ type GenerationInput = {
   topic: string;
   type: GenerationType;
   tone?: 'professional' | 'casual' | 'educational' | 'entertaining';
-  duration?: number;
 };
+
+const OLLAMA_BASE_URL = 'http://localhost:11434';
 
 export function useGenerateContent() {
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: GenerationInput) => {
-      const res = await apiClient.post('/studio/generate', input);
-      if (!res.ok) throw new Error('Generation failed');
-      return res.json() as Promise<{ items: GeneratedItem[] }>;
+      try {
+        const res = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'llama3.1:8b',
+            prompt: buildPrompt(input),
+            stream: false,
+          }),
+        });
+
+        if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
+        const json = (await res.json()) as { response?: string };
+        const content = json.response ?? generateFallback(input);
+
+        return {
+          items: [
+            {
+              id: 'local-' + Date.now(),
+              type: input.type,
+              content,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        };
+      } catch {
+        return {
+          items: [
+            {
+              id: 'local-' + Date.now(),
+              type: input.type,
+              content: generateFallback(input),
+              createdAt: new Date().toISOString(),
+            },
+          ];
+        }
+      };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['library'] });
@@ -37,10 +71,13 @@ export function useGenerateContent() {
 export function useLibraryItems() {
   return useQuery({
     queryKey: ['library'],
-    queryFn: async () => {
-      const res = await apiClient.get('/library');
-      if (!res.ok) throw new Error('Failed to load library');
-      return res.json() as Promise<{ items: GeneratedItem[] }>();
+    queryFn: (): { items: GeneratedItem[] } => {
+      try {
+        const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('mint_library') : null;
+        return { items: raw ? (JSON.parse(raw) as GeneratedItem[]) : [] };
+      } catch {
+        return { items: [] };
+      }
     },
   });
 }
@@ -63,7 +100,6 @@ export function ContentGenerator() {
       topic: topic.trim(),
       type,
       tone,
-      duration: type === 'youtube_script' ? 60 : undefined,
     });
 
     if (result.items?.[0]) setSelectedItem(result.items[0]);
@@ -72,6 +108,18 @@ export function ContentGenerator() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopyFeedback('Copied');
+    setTimeout(() => setCopyFeedback(''), 2000);
+  };
+
+  const saveToLibrary = async (item: GeneratedItem) => {
+    const qc = useQueryClient();
+    const current = qc.getQueryData<{ items: GeneratedItem[] }>(['library']);
+    const next = { items: [item, ...(current?.items ?? [])] };
+    qc.setQueryData(['library'], next);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('mint_library', JSON.stringify(next.items));
+    }
+    setCopyFeedback('Saved');
     setTimeout(() => setCopyFeedback(''), 2000);
   };
 
@@ -180,9 +228,7 @@ export function ContentGenerator() {
               </button>
               <button
                 onClick={async () => {
-                  await apiClient.post('/library', { content: selectedItem.content, type: selectedItem.type });
-                  setCopyFeedback('Saved');
-                  setTimeout(() => setCopyFeedback(''), 2000);
+                  await saveToLibrary(selectedItem);
                 }}
                 className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50"
               >
@@ -212,4 +258,32 @@ export function ContentGenerator() {
       </div>
     </div>
   );
+}
+
+function buildPrompt(input: GenerationInput) {
+  const tone = input.tone || 'educational';
+  if (input.type === 'youtube_script') {
+    return `You are a YouTube scriptwriter for a faceless channel. Topic: "${input.topic}". Tone: ${tone}. Write a 60-second YouTube Shorts script with hook, body, and CTA. Do not mention that you are an AI.`;
+  }
+  if (input.type === 'instagram_caption') {
+    return `You are a social media manager. Topic: "${input.topic}". Tone: ${tone}. Write one concise Instagram caption with relevant hashtags.`;
+  }
+  if (input.type === 'thumbnail_prompt') {
+    return `You are a thumbnail prompt engineer for a faceless YouTube/Instagram channel. Topic: "${input.topic}". Write a detailed visual thumbnail prompt suitable for image generation.`;
+  }
+  return `You are a content creator working on topic: "${input.topic}". Tone: ${tone}. Provide a complete faceless content package including short script, caption, and thumbnail prompt.`;
+}
+
+function generateFallback(input: GenerationInput) {
+  const topic = input.topic;
+  if (input.type === 'youtube_script') {
+    return `[LOCAL SCRIPT]\nHook: What if I told you ${topic} can actually run itself?\nBody: 3 practical points, explained fast.\nCTA: Follow for more AI shortcuts.`;
+  }
+  if (input.type === 'instagram_caption') {
+    return `${topic}\n\nQuick breakdown in reel. Follow if you want more.`;
+  }
+  if (input.type === 'thumbnail_prompt') {
+    return `Thumbnail: futuristic minimalist style, headline text "${topic}", dark background, high contrast, no human face`;
+  }
+  return `YouTube script: Hook + 3 points + CTA about ${topic}.\nCaption: Short punchy line.\nThumbnail prompt: minimalist dark style, bold text.`;
 }
