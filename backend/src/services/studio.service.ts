@@ -45,7 +45,7 @@ const ollamaChatSchema = z.object({
 
 export async function generateWithOllama(input: { prompt: string; system?: string; model?: string }) {
   const data = ollamaChatSchema.parse(input);
-  const base = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\\/$/, '');
+  const base = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\/$/, '');
   const res = await fetch(`${base}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
