@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -81,6 +81,10 @@ export function ContentGenerator() {
   const generate = useGenerateContent();
   const [selectedItem, setSelectedItem] = useState<GeneratedItem | null>(null);
   const [copyFeedback, setCopyFeedback] = useState('');
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [generatingAudio, setGeneratingAudio] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const {
@@ -112,6 +116,34 @@ export function ContentGenerator() {
     setCopyFeedback('Copied');
     setTimeout(() => setCopyFeedback(''), 2000);
   };
+
+  const generateVideoFromScript = useCallback(async (script: string) => {
+    setGeneratingVideo(true);
+    setVideoUrl(null);
+    try {
+      const res = await apiClient.post('/studio/generate-video', { script, platform: 'youtube_shorts' });
+      const data = await res.json();
+      if (data.url) setVideoUrl(data.url);
+    } catch {
+      // video generation failed silently
+    } finally {
+      setGeneratingVideo(false);
+    }
+  }, []);
+
+  const generateVoiceover = useCallback(async (text: string) => {
+    setGeneratingAudio(true);
+    setAudioUrl(null);
+    try {
+      const res = await apiClient.post('/studio/generate-voice', { text });
+      const data = await res.json();
+      if (data.audioUrl) setAudioUrl(data.audioUrl);
+    } catch {
+      // TTS failed silently
+    } finally {
+      setGeneratingAudio(false);
+    }
+  }, []);
 
   const saveToLibrary = async (item: GeneratedItem) => {
     const current = qc.getQueryData<{ items: GeneratedItem[] }>(['library']);
@@ -248,25 +280,62 @@ export function ContentGenerator() {
               >
                 Save to library
               </button>
+              {selectedItem.type === 'script' && (
+                <>
+                  <button
+                    onClick={() => generateVoiceover(selectedItem.content)}
+                    disabled={generatingAudio}
+                    className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50 disabled:opacity-50"
+                  >
+                    {generatingAudio ? 'Generating...' : 'Generate Voiceover'}
+                  </button>
+                  <button
+                    onClick={() => generateVideoFromScript(selectedItem.content)}
+                    disabled={generatingVideo}
+                    className="rounded-2xl border border-mint-500/30 bg-mint-500/10 p-4 text-left text-sm font-bold text-mint-300 hover:bg-mint-500/20 disabled:opacity-50"
+                  >
+                    {generatingVideo ? 'Generating video...' : 'Generate Short Video'}
+                  </button>
+                </>
+              )}
             </div>
+            {audioUrl && (
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                <audio controls className="w-full" src={audioUrl}>
+                  Your browser does not support audio.
+                </audio>
+              </div>
+            )}
+            {videoUrl && (
+              <div className="rounded-2xl border border-mint-500/30 bg-mint-500/10 p-4">
+                <video controls className="w-full rounded-xl" src={videoUrl}>
+                  Your browser does not support video.
+                </video>
+                <p className="mt-2 text-xs text-mint-400">Video generated — plays below</p>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       <div className="mt-10">
         <h2 className="text-lg font-bold text-white">How this works</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-4 md:grid-cols-4">
           <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
             <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Step 1</div>
             <div className="mt-2 text-sm text-white">Enter a topic for your faceless channel content.</div>
           </div>
           <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
             <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Step 2</div>
-            <div className="mt-2 text-sm text-white">Generate scripts, captions, or media prompts with Ollama.</div>
+            <div className="mt-2 text-sm text-white">AI generates script, hook, or thumbnail prompt.</div>
           </div>
           <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
             <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Step 3</div>
-            <div className="mt-2 text-sm text-white">Copy or save into your library for production.</div>
+            <div className="mt-2 text-sm text-white">Add voiceover or generate a short video.</div>
+          </div>
+          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+            <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Step 4</div>
+            <div className="mt-2 text-sm text-white">Save to library, copy, or schedule publish.</div>
           </div>
         </div>
       </div>

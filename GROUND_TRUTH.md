@@ -2,7 +2,7 @@
 
 ## Current State (June 2026)
 
-Phase 1 complete — AI services wired to routes.
+Phase 2 complete — AI services wired to routes, video pipeline integrated.
 
 ### What Works
 - User authentication: Dev-only magic link with real JWT signing
@@ -14,14 +14,15 @@ Phase 1 complete — AI services wired to routes.
 - JWT auth middleware: Registered and working
 - Rate limiting: Per-route (5 req/min for auth, 100/min for API)
 - Error handling: Global error handler with Zod validation
+- Video generation: MoneyPrinterTurbo integrated as Docker sidecar (video.service.ts)
+- Voiceover generation: Edge TTS service for audio (tts.service.ts)
+- Video/TTS endpoints wired to Studio routes (generate-voice, generate-video)
 
 ### What's Partial
 - Auth flow: Magic link is never emailed (dev-hardcoded)
 - Frontend design: Custom green theme started, needs polish
 
 ### What's Missing
-- Video generation (coming in Phase 2 with MoneyPrinterTurbo)
-- TTS/voiceover (coming in Phase 2)
 - Streaming AI responses (planned)
 - Tests (zero — scaffold exists but no tests written)
 - Security: Helmet registered, CSP disabled for API-only mode

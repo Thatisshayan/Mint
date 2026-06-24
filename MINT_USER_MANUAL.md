@@ -24,6 +24,7 @@ Target audience: YouTube Shorts creators, Instagram reel makers, and digital con
 │               Fastify 4 Backend API                    │
 │  JWT Auth │ Prisma ORM │ Zod Validation │ Rate Limit  │
 │  DeepSeek │ Ollama HTTP │ ComfyUI HTTP                │
+│  Edge TTS │ MoneyPrinterTurbo (Docker :10010)         │
 ├─────────────────────────────────────────────────────┤
 │                    PostgreSQL DB                       │
 │  Users │ ContentProjects │ GeneratedPosts │ Research   │
@@ -82,6 +83,15 @@ The core feature. Generate content via AI.
 - Copy to clipboard
 - Save to Library (persisted in PostgreSQL via backend API)
 
+**Next Actions panel:**
+After generating a script, the Next Actions panel offers:
+- **Generate Voiceover** — Converts script text to spoken audio using Edge TTS (`POST /api/studio/generate-voice`). The audio plays inline in the UI.
+- **Generate Short Video** — Sends the script to MoneyPrinterTurbo via `POST /api/studio/generate-video`. Returns a task ID; the frontend polls `GET /api/studio/generate-video/:taskId` until the MP4 is ready. The resulting video can be previewed and downloaded.
+
+**Voiceover pipeline:** Script text → Edge TTS (tts.service.ts) → MP3 audio file → served to frontend.
+
+**Video pipeline:** Script text → Edge TTS voiceover → MoneyPrinterTurbo (Docker sidecar, video.service.ts) → MP4 video → served to frontend.
+
 **Upcoming:**
 - Streaming AI responses (SSE)
 - Per-user rate limiting on AI endpoints
@@ -137,8 +147,10 @@ Queue and manage content for publication.
 | **Ollama** | ✅ Active (fallback) | `llama3.1:8b` | `http://localhost:11434` | `OLLAMA_BASE_URL` |
 | **OpenAI** | ✅ Active (optional) | `gpt-4o-mini` | `https://api.openai.com/v1` | `OPENAI_API_KEY` |
 | **ComfyUI** | ✅ Active | Any SD model | Configurable | `COMFYUI_BASE_URL` |
+| **MoneyPrinterTurbo** | ✅ Active | MPT API | Docker sidecar (:10010) | `MPT_BASE_URL` |
+| **Edge TTS** | ✅ Active | edge-tts CLI | Local/bundled engine | N/A |
 
-All providers are wired through the backend AI provider abstraction, selectable via `LLM_PROVIDER` env var.
+Text-generation providers (DeepSeek/Ollama/OpenAI) are wired through the backend AI provider abstraction, selectable via `LLM_PROVIDER` env var. Media services (video, voiceover) run as separate services.
 
 ---
 
@@ -162,6 +174,9 @@ OLLAMA_BASE_URL=http://localhost:11434  # Default, optional
 # Image Generation
 IMAGE_PROVIDER=openai           # Provider selection (openai/comfyui)
 OPENAI_IMAGE_API_KEY=           # For DALL-E image generation
+
+# Video Generation
+MPT_BASE_URL=http://localhost:10010  # MoneyPrinterTurbo API
 
 # Research
 RESEARCH_PROVIDER=brave         # Research API provider
@@ -272,6 +287,8 @@ npm run backend:start  # Run compiled backend
 | **Library** | ✅ Functional | PostgreSQL-backed content storage |
 | **Publish** | ✅ Functional | Queue management via Prisma |
 | **Image Generation** | ✅ Functional | ComfyUI wired via `/studio/generate-image` |
+| **Voiceover Generation** | ✅ Functional | Edge TTS wired via `/studio/generate-voice` |
+| **Video Generation** | ✅ Functional | MoneyPrinterTurbo wired via `/studio/generate-video` |
 | **Tests** | ❌ None | Vitest configured but no tests written |
 | **Docker** | ✅ Complete | Dockerfiles + compose with healthchecks |
 
@@ -287,7 +304,8 @@ Animation:  Framer Motion 12
 Backend:    Fastify 4 + TypeScript 5.7
 Auth:       @fastify/jwt (HMAC-SHA256) + magic-link email
 DB:         PostgreSQL 16 + Prisma 6 ORM
-AI:         DeepSeek (primary) / Ollama (fallback) / OpenAI (optional) / ComfyUI (image gen)
+AI:         DeepSeek (primary) / Ollama (fallback) / OpenAI (optional)
+Media:      ComfyUI (image gen) / MoneyPrinterTurbo (video gen, Docker sidecar) / Edge TTS (voiceover)
 CI/CD:      GitHub Actions + Docker Compose
 ```
 
@@ -302,15 +320,16 @@ mint/
 │   ├── components/
 │   │   ├── layout/      # AppShell (Header + Sidebar), AppLayout
 │   │   ├── ui/          # Loading, Skeleton, ErrorBoundary
-│   │   └── ContentGenerator.tsx  # Main AI generation component
+│   │   └── ContentGenerator.tsx  # Main AI generation component (Next Actions: voiceover + video)
 │   ├── hooks/           # useSession (auth state)
 │   ├── stores/          # Zustand/TanStack stores (projects, studio, research, library, publish)
 │   └── lib/api/         # fetchWrapper, client (typed), auth
 ├── backend/src/
 │   ├── routes/          # auth, projects, research, studio, library, publish
-│   ├── services/        # Business logic + AI (openai, comfyui, ollama in studio)
+│   ├── services/        # Business logic + AI (openai, comfyui, ollama, video, tts)
 │   ├── middleware/      # JWT auth middleware
 │   ├── utils/           # JWT sign/verify
 │   └── lib/             # Error classes (AppError, NotFoundError, ValidationError)
-└── backend/prisma/      # Schema + migrations
+├── backend/prisma/      # Schema + migrations
+└── docker-compose.yml   # MINT + MoneyPrinterTurbo sidecar
 ```

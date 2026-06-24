@@ -54,4 +54,29 @@ export default async function studioRoutes(fastify: any) {
     const result = await generateComfyUIImage({ prompt: body.prompt });
     return result;
   });
+
+  fastify.post('/studio/generate-voice', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+    const body = z.object({ text: z.string().min(1).max(5000), voice: z.string().optional() }).parse(request.body);
+    const { generateSpeech } = await import('../services/ai/tts.service.js');
+    return await generateSpeech({ text: body.text, voice: body.voice });
+  });
+
+  fastify.post('/studio/generate-video', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+    const body = z.object({
+      script: z.string().min(1).max(10000),
+      title: z.string().max(200).optional(),
+      platform: z.enum(['youtube_shorts', 'instagram_reel', 'tiktok']).optional(),
+      voice: z.string().optional(),
+    }).parse(request.body);
+    const { generateVideo } = await import('../services/ai/video.service.js');
+    return await generateVideo({ script: body.script, title: body.title, platform: body.platform, voice: body.voice });
+  });
+
+  fastify.get('/studio/generate-video/:taskId', { preHandler: authMiddleware }, async (request: any) => {
+    const { taskId } = request.params as { taskId: string };
+    const mptUrl = process.env.MONEY_PRINTER_URL || 'http://localhost:8501';
+    const res = await fetch(`${mptUrl}/api/v1/video/status/${taskId}`, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return { status: 'unknown', taskId };
+    return await res.json();
+  });
 }

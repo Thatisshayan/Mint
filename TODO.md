@@ -12,16 +12,20 @@
 - [x] Remove direct Ollama call from browser (route through backend)
 - [ ] Add per-user rate limiting on AI endpoints
 
-### Phase 2: Video Pipeline (⏳ NEXT)
-- [ ] Integrate MoneyPrinterTurbo as MINT service
-- [ ] Script → video pipeline (script → TTS → footage → MP4)
-- [ ] Video preview & download in Studio
+### Phase 2: Video Pipeline (✅ DONE)
+- [x] Integrate MoneyPrinterTurbo as MINT service
+- [x] Create video service abstraction (video.service.ts)
+- [x] Integrate MPT as Docker sidecar + API client
+- [x] Edge TTS service for voiceover (tts.service.ts)
+- [x] Script → video pipeline (script → TTS → footage → MP4)
+- [x] Video/TTS generation routes + Studio UI integration
+- [x] Video preview & download in Studio
 - [ ] Hook generator (AI script → 5 opening hooks)
 - [ ] Scenario planner (outline → scene list)
 - [ ] Long-form video support via Remotion
 
 ### Phase 3: Additional Integrations (⏳ NEXT)
-- [ ] Edge TTS / Coqui TTS for voiceover
+- [ ] Coqui TTS for local voiceover alternative
 - [ ] FFmpeg-based video assembly
 - [ ] Stock footage via Pexels API
 - [ ] Whisper for transcription

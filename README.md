@@ -6,7 +6,8 @@ captions, thumbnail prompts, and soon videos — all driven by AI.
 ## Stack
 - Frontend: React 18, TypeScript 5.7, Vite 6, Tailwind CSS 3, shadcn/ui, TanStack Query 5, Zustand 5, Framer Motion 12
 - Backend: Node.js, Fastify 4, TypeScript 5.7, Prisma 6, PostgreSQL, JWT auth
-- AI: DeepSeek API, Ollama (local), ComfyUI (local images), MoneyPrinterTurbo (coming)
+- AI: DeepSeek API, Ollama (local), ComfyUI (local images)
+- Media: MoneyPrinterTurbo (video generation, Docker sidecar), Edge TTS (voiceover)
 
 ## Quick Start
 1. `npm install` (root installs frontend + backend deps)
@@ -52,7 +53,8 @@ Configure in `backend/.env`:
 - `DEEPSEEK_API_KEY` — DeepSeek API key (primary AI)
 - `OLLAMA_BASE_URL` — Local Ollama URL (fallback AI)
 - `COMFYUI_BASE_URL` — Local ComfyUI URL (image generation)
+- `MPT_BASE_URL` — MoneyPrinterTurbo API URL (default: http://localhost:10010)
 - `SMTP_*` — Email config (for production magic links)
 
 ## Status
-Early MVP — core AI pipeline being built. See GROUND_TRUTH.md and TODO.md.
+Phase 2 complete — video generation (MoneyPrinterTurbo) and voiceover (Edge TTS) integrated. See GROUND_TRUTH.md and TODO.md.
