@@ -4,7 +4,7 @@ interface SkeletonProps {
   className?: string;
   height?: number | string;
   width?: number | string;
-  radius?: string;
+  radius?: 'none' | 'sm' | 'md' | 'lg' | 'full';
 }
 
 export function Skeleton({
@@ -14,7 +14,7 @@ export function Skeleton({
   radius = 'sm',
 }: SkeletonProps) {
   const baseClasses = 'animate-pulse bg-gray-200 rounded';
-  const radiusClasses: Record<string, string> = {
+  const radiusClasses = {
     none: 'rounded-none',
     sm: 'rounded-sm',
     md: 'rounded-md',
