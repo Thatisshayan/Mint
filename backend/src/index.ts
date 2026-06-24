@@ -1,8 +1,10 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import jwt from '@fastify/jwt';
+import helmet from '@fastify/helmet';
 import { config } from './config.js';
-import { AppError, ValidationError, NotFoundError, UnauthorizedError } from './lib/errors.js';
+import { AppError, ValidationError } from './lib/errors.js';
 
 export async function buildApp() {
   const app = fastify({ logger: { level: config.env === 'production' ? 'warn' : 'info' } });
@@ -17,6 +19,12 @@ export async function buildApp() {
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   });
+
+  // JWT: register plugin with secret from config
+  await app.register(jwt, { secret: config.jwtSecret });
+
+  // Security headers via Helmet
+  await app.register(helmet as any, { contentSecurityPolicy: false });
 
   // Rate limiting: stricter for auth endpoints, standard for everything else
   await app.register(rateLimit, {

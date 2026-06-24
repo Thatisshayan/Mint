@@ -249,7 +249,7 @@ export function ContentGenerator() {
 
           <div className="lg:col-span-2 space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Next actions</h3>
-            <div className="gap-3">
+            <div className="grid gap-3">
               <button
                 onClick={() => copyToClipboard(selectedItem.content)}
                 className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50"

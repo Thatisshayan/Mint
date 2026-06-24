@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { getCurrentUser } from '../services/auth.service.js';
+import { sign } from '../utils/jwt.js';
 
 const magicLinkSchema = z.object({
   email: z.string().email('Invalid email format'),
@@ -38,7 +39,9 @@ export default async function authRoutes(fastify: any) {
     },
   }, async (request: any, reply: any) => {
     const body = verifySchema.parse(request.body);
-    return { accessToken: 'local-dev', refreshToken: 'local-refresh', user: { email: body.email } };
+    const accessToken = sign({ sub: body.email, email: body.email }, { expiresIn: '24h' });
+    const refreshToken = sign({ sub: body.email, type: 'refresh' }, { expiresIn: '7d' });
+    return { accessToken, refreshToken, user: { id: body.email, email: body.email } };
   });
 
   fastify.post('/auth/refresh', {
@@ -50,7 +53,8 @@ export default async function authRoutes(fastify: any) {
     },
   }, async (request: any, reply: any) => {
     const body = refreshSchema.parse(request.body);
-    return { accessToken: 'local-dev' };
+    const accessToken = sign({ sub: body.refreshToken, type: 'access' }, { expiresIn: '24h' });
+    return { accessToken };
   });
 
   fastify.post('/auth/logout', { preHandler: authMiddleware }, async () => ({ ok: true }));

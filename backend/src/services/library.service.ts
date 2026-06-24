@@ -8,7 +8,8 @@ const updatePostSchema = z.object({
 export async function listPosts(userId: string, projectId?: string) {
   return prisma.generatedPost.findMany({
     where: {
-      project: { userId, ...(projectId ? { id: projectId } : {}) },
+      userId,
+      ...(projectId ? { projectId } : {}),
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -16,7 +17,7 @@ export async function listPosts(userId: string, projectId?: string) {
 
 export async function updatePost(userId: string, id: string, updates: unknown) {
   const data = updatePostSchema.parse(updates ?? {});
-  const post = await prisma.generatedPost.findFirst({ where: { id, project: { userId } } });
+  const post = await prisma.generatedPost.findFirst({ where: { id, userId } });
   if (!post) {
     throw new Error('Post not found');
   }

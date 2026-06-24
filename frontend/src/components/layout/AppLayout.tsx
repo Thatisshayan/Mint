@@ -1,4 +1,3 @@
-import { Outlet } from 'react-router-dom';
 import { Sidebar, Header } from '@/components/layout/AppShell';
 
 interface AppLayoutProps {
@@ -13,7 +12,7 @@ export default function AppLayout({ onSignOut, children }: AppLayoutProps) {
       <div className="flex min-h-[calc(100vh-64px)]">
         <Sidebar />
         <main className="flex-1 p-6">
-          <Outlet />
+          {children}
         </main>
       </div>
     </div>

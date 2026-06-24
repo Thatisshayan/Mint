@@ -23,6 +23,5 @@ export async function listProjects(userId: string) {
 export async function getProject(userId: string, id: string) {
   return prisma.contentProject.findFirst({
     where: { id, userId },
-    include: { posts: true, reports: true },
   });
 }

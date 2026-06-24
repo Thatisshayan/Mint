@@ -23,7 +23,7 @@ Target audience: YouTube Shorts creators, Instagram reel makers, and digital con
 ├─────────────────────────────────────────────────────┤
 │               Fastify 4 Backend API                    │
 │  JWT Auth │ Prisma ORM │ Zod Validation │ Rate Limit  │
-│  OpenAI SDK │ Ollama HTTP │ ComfyUI HTTP              │
+│  DeepSeek │ Ollama HTTP │ ComfyUI HTTP                │
 ├─────────────────────────────────────────────────────┤
 │                    PostgreSQL DB                       │
 │  Users │ ContentProjects │ GeneratedPosts │ Research   │
@@ -36,9 +36,9 @@ Target audience: YouTube Shorts creators, Instagram reel makers, and digital con
 
 ### 1. Landing Page (`/`)
 
-The entry point. One button: **"Launch Mint"**. Clicking it calls a dev-only magic-link auth flow that signs you in instantly with `demo@example.com`.
+The entry point. Email input form. User enters their email, clicks **"Launch Mint"**. Dev-only: auto-verifies with a dummy token and stores JWT in localStorage.
 
-In production, this will send an email magic link.
+In production, this will send an email magic link through SMTP.
 
 ---
 
@@ -80,10 +80,11 @@ The core feature. Generate content via AI.
 - Copy to clipboard
 - Save to Library (stored in localStorage)
 
-**Upcoming (in PR):**
-- OpenAI integration (`gpt-4o-mini`) — will replace Ollama as the primary generator
-- ComfyUI integration — will generate actual thumbnail images from prompts
-- 30-second timeout with 3 retries for all AI calls
+**Upcoming (Phase 1):**
+- AI provider abstraction (DeepSeek/Ollama/OpenAI) wired through backend routes
+- ComfyUI integration — will generate thumbnail images from prompts
+- Streaming AI responses (SSE)
+- Per-user rate limiting on AI endpoints
 
 ---
 
@@ -93,7 +94,7 @@ Competitor and keyword research tool.
 
 **Currently:** Placeholder. Submits a query to `POST /api/research` which returns a static stub response.
 
-**Planned:** Integration with Brave Search API (env var: `BRAVE_SEARCH_API_KEY`) to return real competitive analysis data.
+**Planned:** Integration with search APIs for competitive analysis data.
 
 ---
 
@@ -113,7 +114,7 @@ Schedule and post content to social platforms.
 
 **Currently:** Placeholder — shows "Publish queue coming next."
 
-**Planned:** Queue management, platform selection (Twitter, LinkedIn, Instagram), scheduling calendar, webhook integration.
+**Planned:** Queue management, platform selection (YouTube, Instagram), scheduling calendar, webhook integration.
 
 ---
 
@@ -121,9 +122,12 @@ Schedule and post content to social platforms.
 
 | Provider | Status | Model | Endpoint | Env Var |
 |----------|--------|-------|----------|---------|
-| **Ollama** (default) | ✅ Active | `llama3.1:8b` | `http://localhost:11434` | `OLLAMA_BASE_URL` |
-| **OpenAI** | 🟡 In PR | `gpt-4o-mini` | `https://api.openai.com/v1` | `OPENAI_API_KEY` |
-| **ComfyUI** | 🟡 In PR | Any SD model | Configurable | `COMFYUI_BASE_URL` |
+| **Ollama** (browser direct) | ✅ Active | `llama3.1:8b` | `http://localhost:11434` | `OLLAMA_BASE_URL` |
+| **DeepSeek API** | 🔧 Planned | DeepSeek V3 | API cloud | `DEEPSEEK_API_KEY` |
+| **OpenAI** | 🟡 Service exists | `gpt-4o-mini` | `https://api.openai.com/v1` | `OPENAI_API_KEY` |
+| **ComfyUI** | 🟡 Service exists | Any SD model | Configurable | `COMFYUI_BASE_URL` |
+
+OpenAI and ComfyUI service implementations exist but are not yet wired to route handlers.
 
 ---
 
@@ -137,25 +141,36 @@ JWT_SECRET=change-me            # Must be set, no fallback
 DATABASE_URL=postgresql://...    # PostgreSQL connection string
 
 # AI Providers
-OPENAI_API_KEY=sk-...            # For OpenAI content generation
+LLM_PROVIDER=openai             # Provider selection (openai/anthropic/google/deepseek)
+OPENAI_API_KEY=sk-...           # For OpenAI content generation
+ANTHROPIC_API_KEY=              # Anthropic API key
+GOOGLE_AI_API_KEY=              # Google AI API key
+DASHSCOPE_API_KEY=              # DashScope API key
 OLLAMA_BASE_URL=http://localhost:11434  # Default, optional
-COMFYUI_BASE_URL=               # ComfyUI endpoint (optional)
+
+# Image Generation
+IMAGE_PROVIDER=openai           # Provider selection (openai/comfyui)
+OPENAI_IMAGE_API_KEY=           # For DALL-E image generation
+
+# Research
+RESEARCH_PROVIDER=brave         # Research API provider
+BRAVE_SEARCH_API_KEY=           # Brave Search API key
 
 # Auth
-SMTP_HOST=                       # Magic-link email sending
+SMTP_HOST=                      # Magic-link email sending
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
 
-# Storage
-S3_ENDPOINT=                     # File uploads (future)
+# Storage (future)
+S3_ENDPOINT=
 S3_ACCESS_KEY=
 S3_SECRET_KEY=
 S3_BUCKET=
 S3_REGION=
 
-# Frontend URL (for CORS)
-FRONTEND_URL=https://your-mint-domain.com
+# Caching (future)
+REDIS_URL=redis://localhost:6379
 ```
 
 ### Frontend (`frontend/.env`)
@@ -200,15 +215,14 @@ VITE_API_URL=/api                # API base URL (proxied in dev)
 
 ### Development
 ```bash
-# Terminal 1: Start PostgreSQL (Docker)
-docker compose up postgres
-
-# Terminal 2: Start backend
+# Terminal 1: Start backend
 npm run backend:dev
 
-# Terminal 3: Start frontend
+# Terminal 2: Start frontend
 npm run dev
 ```
+
+Uses Railway PostgreSQL by default. For local DB, set `DATABASE_URL` in `backend/.env`.
 
 ### Production
 ```bash
@@ -226,12 +240,13 @@ npm run backend:start  # Run compiled backend
 
 | Feature | Status |
 |---------|--------|
-| **JWT** | HMAC-SHA256 with `exp` + `iat` validation, timing-safe comparison |
+| **JWT** | Registered via @fastify/jwt, HMAC-SHA256 with `exp` + `iat` validation |
 | **CORS** | Restrictive in production (configurable via `FRONTEND_URL`) |
-| **Rate Limiting** | 5 req/min on auth, 100 global |
+| **Rate Limiting** | 5 req/min on auth, 100/min general API |
 | **Input Validation** | Zod on all API routes |
-| **Error Handling** | Operational (4xx) vs programming (5xx) errors distinguished |
-| **Secrets** | Never hardcoded — all via env vars, fails fast at startup |
+| **Error Handling** | AppError distinction (4xx operational vs 5xx programming) |
+| **Helmet** | Registered (security headers for API mode) |
+| **Secrets** | All via env vars, fails fast at startup |
 
 ---
 
@@ -239,16 +254,15 @@ npm run backend:start  # Run compiled backend
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| **Auth** | ⚠️ Dev-only | Magic link sends to hardcoded email |
+| **Auth** | ⚠️ Dev-only | Magic link with real JWT, hardcoded verification |
 | **Projects CRUD** | ✅ Functional | Create + list projects |
-| **Content Studio** | ✅ Functional | Generates via Ollama, has Zod validation |
+| **Content Studio** | ✅ Functional | Generates via Ollama directly from browser |
 | **Research** | ⚠️ Stub | Submits query, returns static response |
 | **Library** | ⚠️ Stub | localStorage-based, PG planned |
 | **Publish** | ❌ Placeholder | Not implemented |
-| **OpenAI** | 🟡 In PR | Merged but waiting for `OPENAI_API_KEY` |
-| **ComfyUI** | 🟡 In PR | Merged but waiting for `COMFYUI_BASE_URL` |
+| **OpenAI/ComfyUI** | 🟡 Service exists | Implemented but not wired to routes |
 | **Tests** | ❌ None | Vitest configured but no tests written |
-| **Docker** | ✅ Complete | Healthchecks on all services |
+| **Docker** | ✅ Complete | Dockerfiles + compose with healthchecks |
 
 ---
 
@@ -262,7 +276,7 @@ Animation:  Framer Motion 12
 Backend:    Fastify 4 + TypeScript 5.7
 Auth:       @fastify/jwt (HMAC-SHA256) + magic-link email
 DB:         PostgreSQL 16 + Prisma 6 ORM
-AI:         Ollama (local) / OpenAI (cloud) / ComfyUI (self-hosted)
+AI:         Ollama (active) / DeepSeek (planned) / OpenAI (service exists) / ComfyUI (service exists)
 CI/CD:      GitHub Actions + Docker Compose
 ```
 
@@ -283,7 +297,7 @@ mint/
 │   └── lib/api/         # fetchWrapper, client (typed), auth
 ├── backend/src/
 │   ├── routes/          # auth, projects, research, studio, library, publish
-│   ├── services/        # Business logic + AI (openai, comfyui, ollama)
+│   ├── services/        # Business logic + AI (openai, comfyui, ollama in studio)
 │   ├── middleware/      # JWT auth middleware
 │   ├── utils/           # JWT sign/verify
 │   └── lib/             # Error classes (AppError, NotFoundError, ValidationError)

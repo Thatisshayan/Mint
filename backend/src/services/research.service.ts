@@ -15,14 +15,15 @@ export async function createResearch(userId: string, input: unknown) {
   const prompt = data.query;
   const summary = `${prompt}\n\n[research placeholder]\n`;
   return prisma.researchReport.create({
-    data: { projectId: project.id, competitor: prompt, findings: summary },
+    data: { projectId: project.id, query: prompt, source: 'local', summary, userId },
   });
 }
 
 export async function listResearch(userId: string, projectId?: string) {
   return prisma.researchReport.findMany({
     where: {
-      project: { userId, ...(projectId ? { id: projectId } : {}) },
+      userId,
+      ...(projectId ? { projectId } : {}),
     },
     orderBy: { createdAt: 'desc' },
   });

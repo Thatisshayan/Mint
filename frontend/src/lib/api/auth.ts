@@ -23,13 +23,13 @@ export const authApi = {
     }
   },
   async signInWithMagicLink(email: string) {
-    const response = await request('/magic-link', { method: 'POST', body: JSON.stringify({ email }) });
+    const response = await request('/auth/magic-link', { method: 'POST', body: JSON.stringify({ email }) });
     return response.json();
   },
-  async verifyMagicLink(token: string) {
-    const response = await request('/verify', { method: 'POST', body: JSON.stringify({ token }) });
+  async verifyMagicLink(token: string, email: string) {
+    const response = await request('/auth/verify', { method: 'POST', body: JSON.stringify({ token, email }) });
     const result = await response.json();
-    if (result?.accessToken && result?.expiresAt && result?.user) {
+    if (result?.accessToken && result?.user) {
       try {
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem(TOKEN_KEY, result.accessToken);
