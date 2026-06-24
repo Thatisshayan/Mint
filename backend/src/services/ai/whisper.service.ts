@@ -1,6 +1,6 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { writeFile, unlink, mkdtemp } from 'fs/promises';
+import { writeFile, unlink, mkdtemp, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -30,7 +30,7 @@ export async function transcribeAudio({ audioBase64, language = 'en' }: Transcri
     });
 
     try { await unlink(inputPath); } catch {}
-    try { await require('fs').promises.rmdir(tmpDir, { recursive: true }); } catch {}
+    try { await rmdir(tmpDir, { recursive: true }); } catch {}
 
     const result = JSON.parse(stdout) as { text: string; segments?: Array<{ start: number; end: number; text: string }> };
     return { text: result.text || '', segments: result.segments, language };

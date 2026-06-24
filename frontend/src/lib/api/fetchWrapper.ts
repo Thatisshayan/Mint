@@ -25,5 +25,9 @@ export async function request(path: string, options: RequestInit & { auth?: bool
   }
 
   const response = await fetch(url, { ...options, headers });
+  if (!response.ok) {
+    const message = await response.text().catch(() => 'Request failed');
+    throw new Error(`HTTP ${response.status}: ${message}`);
+  }
   return response;
 }

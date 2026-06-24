@@ -8,6 +8,7 @@ import jwt from '@fastify/jwt';
 import helmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
 import { config } from './config.js';
+import { connectDb } from './services/db.js';
 import { AppError, ValidationError } from './lib/errors.js';
 
 export async function buildApp() {
@@ -105,14 +106,9 @@ export async function buildApp() {
       return reply.status(404).send({ error: 'NOT_FOUND', message: 'Route not found' });
     });
   }
-  await app.register((await import('./routes/projects.routes.js')).default, { prefix: '/api' });
-  await app.register((await import('./routes/research.routes.js')).default, { prefix: '/api' });
-  await app.register((await import('./routes/studio.routes.js')).default, { prefix: '/api' });
-  await app.register((await import('./routes/library.routes.js')).default, { prefix: '/api' });
-  await app.register((await import('./routes/publish.routes.js')).default, { prefix: '/api' });
-
   const start = async () => {
     try {
+      await connectDb();
       await app.listen({ port: Number(process.env.PORT || 4000), host: '0.0.0.0' });
       app.log.info(`Server running on http://0.0.0.0:${process.env.PORT || 4000}`);
     } catch (err) {

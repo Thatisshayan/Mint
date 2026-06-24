@@ -28,6 +28,13 @@ export function useSession() {
       const expiresAt = typeof localStorage !== 'undefined' ? localStorage.getItem(EXPIRY_KEY) : null;
       const rawUser = typeof localStorage !== 'undefined' ? localStorage.getItem(USER_KEY) : null;
       if (!token || !expiresAt || !rawUser) return null;
+      const expiresAtNum = Number(expiresAt);
+      if (!isNaN(expiresAtNum) && expiresAtNum < Date.now()) {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(EXPIRY_KEY);
+        localStorage.removeItem(USER_KEY);
+        return null;
+      }
       let user: StoredUser | null = null;
       try {
         const parsed: unknown = JSON.parse(rawUser);

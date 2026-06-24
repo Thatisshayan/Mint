@@ -1,6 +1,5 @@
+import { cn } from '@/lib/utils';
 import { InputHTMLAttributes, forwardRef } from 'react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
 type InputProps = InputHTMLAttributes<HTMLInputElement>;
 
@@ -16,7 +15,3 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, ...p
     />
   );
 });
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}

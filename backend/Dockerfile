@@ -8,12 +8,19 @@ COPY backend/prisma ./prisma
 RUN npx prisma generate --schema prisma/schema.prisma
 RUN npx tsc -p tsconfig.json
 
+COPY frontend ./frontend
+COPY index.html ./
+COPY vite.config.ts ./
+COPY tailwind.config.ts ./
+COPY postcss.config.js ./
+RUN npx vite build
+
 FROM node:20-alpine
 WORKDIR /app
-COPY --from=builder /app/backend/dist ./dist
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/backend/prisma ./prisma
+COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/frontend/dist ./frontend/dist
 ENV NODE_ENV=production
 EXPOSE 4000

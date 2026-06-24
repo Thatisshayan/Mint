@@ -1,6 +1,6 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { writeFile, unlink, mkdtemp } from 'fs/promises';
+import { writeFile, unlink, mkdtemp, readFile, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -56,16 +56,16 @@ export async function assembleVideo({ clips, audioUrl, outputFormat = 'mp4' }: A
 
     await exec('ffmpeg', args, { timeout: 120_000 });
 
-    const buffer = await require('fs').promises.readFile(outputPath);
+    const buffer = await readFile(outputPath);
     const base64 = buffer.toString('base64');
 
     // Cleanup
     try { await unlink(outputPath); } catch {}
-    try { await require('fs').promises.rmdir(tmpDir); } catch {}
+    try { await rmdir(tmpDir); } catch {}
 
     return { url: `data:video/${outputFormat};base64,${base64}`, format: outputFormat };
   } catch (err) {
-    try { await require('fs').promises.rmdir(tmpDir, { recursive: true }); } catch {}
+    try { await rmdir(tmpDir, { recursive: true }); } catch {}
     throw new Error(`Video assembly failed: ${(err as Error).message}`);
   }
 }
