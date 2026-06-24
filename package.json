@@ -15,7 +15,8 @@
     "db:studio": "prisma studio",
     "backend:dev": "tsx watch backend/src/index.ts",
     "backend:build": "tsc -p backend/tsconfig.json",
-    "backend:start": "node backend/dist/index.js"
+    "backend:start": "node backend/dist/index.js",
+    "start": "node backend/dist/index.js"
   },
   "dependencies": {
     "@fastify/static": "^9.1.3",
