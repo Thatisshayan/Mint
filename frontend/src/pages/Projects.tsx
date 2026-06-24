@@ -22,16 +22,16 @@ export default function Projects() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <h1 className="text-3xl font-black uppercase text-white">Projects</h1>
-      <form onSubmit={handleCreate} className="mt-8 space-y-4 rounded-3xl border border-white/5 bg-white/[0.02] p-6">
+    <div className="mx-auto max-w-5xl">
+      <h1 className="text-3xl font-black uppercase text-foreground">Projects</h1>
+      <form onSubmit={handleCreate} className="mt-8 mint-card p-6 space-y-4">
         <div>
           <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Title</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="mt-2 h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-sm text-white placeholder:text-muted-foreground focus:border-mint-400 focus:outline-none"
+            className="mint-input mt-2"
             placeholder="My content engine"
           />
         </div>
@@ -40,14 +40,14 @@ export default function Projects() {
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-muted-foreground focus:border-mint-400 focus:outline-none"
+            className="mint-input mt-2 min-h-[100px] resize-none py-3"
             placeholder="What are we building?"
           />
         </div>
         <button
           type="submit"
           disabled={create.isPending}
-          className="h-12 rounded-2xl bg-mint-500 px-6 font-black uppercase tracking-[0.2em] text-mint-950 shadow-[0_20px_40px_rgba(13,148,136,.35)] hover:brightness-110 disabled:opacity-60"
+          className="mint-btn"
         >
           Create project
         </button>
@@ -56,9 +56,9 @@ export default function Projects() {
       <div className="mt-10 grid gap-4">
         {isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
         {(projects ?? []).map((project: Project) => (
-          <div key={project.id} className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-            <div className="text-base font-bold text-white">{project.title}</div>
-            <div className="text-sm text-muted-foreground">{project.description}</div>
+          <div key={project.id} className="mint-card p-5">
+            <div className="text-base font-bold text-foreground">{project.title}</div>
+            <div className="mt-1 text-sm text-muted-foreground">{project.description}</div>
           </div>
         ))}
       </div>

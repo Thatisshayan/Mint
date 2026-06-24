@@ -79,4 +79,29 @@ export default async function studioRoutes(fastify: any) {
     if (!res.ok) return { status: 'unknown', taskId };
     return await res.json();
   });
+
+  fastify.post('/studio/search-stock', { preHandler: authMiddleware }, async (request: any) => {
+    const body = z.object({ query: z.string().min(1) }).parse(request.body);
+    const { searchStockVideos } = await import('../services/ai/pexels.service.js');
+    return await searchStockVideos({ query: body.query });
+  });
+
+  fastify.post('/studio/assemble-video', { preHandler: authMiddleware }, async (request: any) => {
+    const body = z.object({
+      clips: z.array(z.object({
+        type: z.enum(['video', 'image', 'text']),
+        source: z.string().optional(),
+        duration: z.number().optional(),
+      })),
+      audioUrl: z.string().optional(),
+    }).parse(request.body);
+    const { assembleVideo } = await import('../services/ai/assembly.service.js');
+    return await assembleVideo({ clips: body.clips, audioUrl: body.audioUrl });
+  });
+
+  fastify.post('/studio/transcribe', { preHandler: authMiddleware }, async (request: any) => {
+    const body = z.object({ audioBase64: z.string().min(1) }).parse(request.body);
+    const { transcribeAudio } = await import('../services/ai/whisper.service.js');
+    return await transcribeAudio({ audioBase64: body.audioBase64 });
+  });
 }

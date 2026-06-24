@@ -2,33 +2,38 @@
 
 ## What is MINT?
 
-MINT is a **self-hosted content creation workstation** for faceless channels. It helps you research topics, generate scripts/captions/thumbnail prompts, organize content, and schedule publication — all powered by local or cloud AI.
+MINT is a **self-hosted content creation workstation** for faceless channels. It helps you research topics, generate scripts/captions/thumbnail prompts, produce voiceovers and videos, organize content, and schedule publication — all powered by local or cloud AI.
 
-Target audience: YouTube Shorts creators, Instagram reel makers, and digital content producers who want to automate their writing workflow.
+Target audience: YouTube Shorts creators, Instagram reel makers, and digital content producers who want to automate their writing and video production workflow.
 
 ---
 
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                     User (Browser)                    │
-├─────────────────────────────────────────────────────┤
-│  React 18 + Vite 6 + Tailwind CSS 3 + shadcn/ui     │
-│  TanStack Query 5 + Zustand 5 + Framer Motion 12    │
-│  React Router 7                                      │
-├─────────────────────────────────────────────────────┤
-│                    Vite Dev Proxy                     │
-│                 (localhost:5173 -> :4000)             │
-├─────────────────────────────────────────────────────┤
-│               Fastify 4 Backend API                    │
-│  JWT Auth │ Prisma ORM │ Zod Validation │ Rate Limit  │
-│  DeepSeek │ Ollama HTTP │ ComfyUI HTTP                │
-│  Edge TTS │ MoneyPrinterTurbo (Docker :10010)         │
-├─────────────────────────────────────────────────────┤
-│                    PostgreSQL DB                       │
-│  Users │ ContentProjects │ GeneratedPosts │ Research   │
-└─────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│                        User (Browser)                           │
+├────────────────────────────────────────────────────────────────┤
+│  React 18 + Vite 6 + Tailwind CSS 3 + shadcn/ui                │
+│  TanStack Query 5 + Zustand 5 + Framer Motion 12               │
+│  React Router 7 — Dark/Light mode — Mint green theme           │
+├────────────────────────────────────────────────────────────────┤
+│                      Vite Dev Proxy                             │
+│                   (localhost:5173 -> :4000)                     │
+├────────────────────────────────────────────────────────────────┤
+│                  Fastify 4 Backend API                           │
+│  JWT Auth │ Prisma ORM │ Zod Validation │ Rate Limiting         │
+│  Helmet │ Global Error Handler │ AppError                       │
+├────────────────────────────────────────────────────────────────┤
+│  Text AI     │  Media Services     │  Integrations              │
+│  ─────────── │  ─────────────────  │  ───────────────────       │
+│  DeepSeek    │  Edge TTS (voice)   │  Pexels API (stock)        │
+│  Ollama HTTP │  MoneyPrinterTurbo  │  FFmpeg (video assembly)   │
+│  OpenAI      │  ComfyUI (images)   │  Whisper (transcription)   │
+├────────────────────────────────────────────────────────────────┤
+│                      PostgreSQL DB                              │
+│  Users │ ContentProjects │ GeneratedPosts │ ResearchReports     │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -50,7 +55,7 @@ Manage your content projects — each project is a content bucket (e.g., "AI Tut
 **What you can do:**
 - Create a project with a title + description
 - View a list of all your projects
-- (Future) click into a project to see its generated content
+- Click into a project to see its generated content
 
 **Tech:** `useQuery` + `useMutation` via TanStack Query. Data fetched from `GET /api/projects` / `POST /api/projects`.
 
@@ -64,7 +69,7 @@ The core feature. Generate content via AI.
 | Field | Description |
 |-------|-------------|
 | **Topic/Brief** | What the content is about (min 3 chars) |
-| **Content Type** | YouTube Script (60s) / Instagram Caption / Thumbnail Prompt / Full Package |
+| **Content Type** | YouTube Script (60s) / Instagram Caption / Thumbnail Prompt / Hook / Scenario / Full Package |
 | **Tone** | Educational / Professional / Casual / Entertaining |
 
 **How generation works:**
@@ -75,7 +80,9 @@ The core feature. Generate content via AI.
    - **YouTube Script**: Hook + body + CTA (60-second Shorts format)
    - **Instagram Caption**: Short caption + hashtags
    - **Thumbnail Prompt**: Visual description for image generation
-   - **Full Package**: All three combined
+   - **Hook**: 5 opening hooks for videos
+   - **Scenario**: Scene-by-scene outline
+   - **Full Package**: Script + caption + thumbnail prompt combined
 5. The provider generates text content; for image generation, the route forwards to ComfyUI
 6. The response is returned to the frontend for copying, saving, or further editing
 
@@ -87,14 +94,15 @@ The core feature. Generate content via AI.
 After generating a script, the Next Actions panel offers:
 - **Generate Voiceover** — Converts script text to spoken audio using Edge TTS (`POST /api/studio/generate-voice`). The audio plays inline in the UI.
 - **Generate Short Video** — Sends the script to MoneyPrinterTurbo via `POST /api/studio/generate-video`. Returns a task ID; the frontend polls `GET /api/studio/generate-video/:taskId` until the MP4 is ready. The resulting video can be previewed and downloaded.
+- **Search Stock Footage** — Searches Pexels for royalty-free video clips (`POST /api/studio/search-stock`)
+- **Assemble Video** — Combines clips + audio into a single MP4 via FFmpeg (`POST /api/studio/assemble-video`)
+- **Transcribe Audio** — Converts audio to text via Whisper (`POST /api/studio/transcribe`)
 
 **Voiceover pipeline:** Script text → Edge TTS (tts.service.ts) → MP3 audio file → served to frontend.
 
 **Video pipeline:** Script text → Edge TTS voiceover → MoneyPrinterTurbo (Docker sidecar, video.service.ts) → MP4 video → served to frontend.
 
-**Upcoming:**
-- Streaming AI responses (SSE)
-- Per-user rate limiting on AI endpoints
+**Stock + Assembly pipeline:** Pexels stock footage search → select clips → FFmpeg assembly with audio overlay → MP4.
 
 ---
 
@@ -141,16 +149,19 @@ Queue and manage content for publication.
 
 ## AI Providers
 
-| Provider | Status | Model | Endpoint | Env Var |
-|----------|--------|-------|----------|---------|
-| **DeepSeek API** | ✅ Active (primary) | DeepSeek V3 | API cloud | `DEEPSEEK_API_KEY` |
-| **Ollama** | ✅ Active (fallback) | `llama3.1:8b` | `http://localhost:11434` | `OLLAMA_BASE_URL` |
-| **OpenAI** | ✅ Active (optional) | `gpt-4o-mini` | `https://api.openai.com/v1` | `OPENAI_API_KEY` |
-| **ComfyUI** | ✅ Active | Any SD model | Configurable | `COMFYUI_BASE_URL` |
-| **MoneyPrinterTurbo** | ✅ Active | MPT API | Docker sidecar (:10010) | `MPT_BASE_URL` |
-| **Edge TTS** | ✅ Active | edge-tts CLI | Local/bundled engine | N/A |
+| Provider | Status | Purpose | Endpoint | Env Var |
+|----------|--------|---------|----------|---------|
+| **DeepSeek API** | ✅ Active (primary) | Text generation | API cloud | `DEEPSEEK_API_KEY` |
+| **Ollama** | ✅ Active (fallback) | Text generation | `http://localhost:11434` | `OLLAMA_BASE_URL` |
+| **OpenAI** | ✅ Active (optional) | Text generation | `https://api.openai.com/v1` | `OPENAI_API_KEY` |
+| **ComfyUI** | ✅ Active | Image generation | Configurable | `COMFYUI_BASE_URL` |
+| **MoneyPrinterTurbo** | ✅ Active | Video generation | Docker sidecar (:10010) | `MPT_BASE_URL` |
+| **Edge TTS** | ✅ Active | Voiceover | edge-tts CLI | N/A |
+| **Pexels API** | ✅ Active | Stock footage | API cloud | `PEXELS_API_KEY` |
+| **Whisper** | ✅ Active | Transcription | Local model | N/A |
+| **FFmpeg** | ✅ Active | Video assembly | Local binary | N/A |
 
-Text-generation providers (DeepSeek/Ollama/OpenAI) are wired through the backend AI provider abstraction, selectable via `LLM_PROVIDER` env var. Media services (video, voiceover) run as separate services.
+Text-generation providers (DeepSeek/Ollama/OpenAI) are wired through the backend AI provider abstraction, selectable via `LLM_PROVIDER` env var. Media services (video, voiceover, stock, assembly, transcription) run as separate services.
 
 ---
 
@@ -164,26 +175,22 @@ JWT_SECRET=change-me            # Must be set, no fallback
 DATABASE_URL=postgresql://...    # PostgreSQL connection string
 
 # AI Providers
-LLM_PROVIDER=openai             # Provider selection (openai/anthropic/google/deepseek)
-OPENAI_API_KEY=sk-...           # For OpenAI content generation
-ANTHROPIC_API_KEY=              # Anthropic API key
-GOOGLE_AI_API_KEY=              # Google AI API key
-DASHSCOPE_API_KEY=              # DashScope API key
+LLM_PROVIDER=deepseek            # Provider selection (deepseek/ollama/openai)
+DEEPSEEK_API_KEY=sk-...          # DeepSeek API key (primary)
+OPENAI_API_KEY=sk-...            # OpenAI API key (optional)
 OLLAMA_BASE_URL=http://localhost:11434  # Default, optional
 
 # Image Generation
-IMAGE_PROVIDER=openai           # Provider selection (openai/comfyui)
-OPENAI_IMAGE_API_KEY=           # For DALL-E image generation
+COMFYUI_BASE_URL=http://localhost:8188  # ComfyUI API
 
 # Video Generation
-MPT_BASE_URL=http://localhost:10010  # MoneyPrinterTurbo API
+MPT_BASE_URL=http://localhost:10010     # MoneyPrinterTurbo API
 
-# Research
-RESEARCH_PROVIDER=brave         # Research API provider
-BRAVE_SEARCH_API_KEY=           # Brave Search API key
+# Stock Footage
+PEXELS_API_KEY=                  # Pexels API key
 
 # Auth
-SMTP_HOST=                      # Magic-link email sending
+SMTP_HOST=                       # Magic-link email sending (production)
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
@@ -194,9 +201,6 @@ S3_ACCESS_KEY=
 S3_SECRET_KEY=
 S3_BUCKET=
 S3_REGION=
-
-# Caching (future)
-REDIS_URL=redis://localhost:6379
 ```
 
 ### Frontend (`frontend/.env`)
@@ -250,7 +254,7 @@ npm run dev
 
 Uses Railway PostgreSQL by default. For local DB, set `DATABASE_URL` in `backend/.env`.
 
-### Production
+### Production (Docker)
 ```bash
 # Full stack with Docker
 docker compose up --build
@@ -258,6 +262,16 @@ docker compose up --build
 # Or manually:
 npm run build          # Frontend + backend TypeScript check
 npm run backend:start  # Run compiled backend
+```
+
+### Railway Deployment
+```bash
+# Install CLI and deploy
+npm i -g @railway/cli
+railway login
+railway link
+railway plugin add postgresql
+railway up
 ```
 
 ---
@@ -281,7 +295,7 @@ npm run backend:start  # Run compiled backend
 | Component | Status | Notes |
 |-----------|--------|-------|
 | **Auth** | ⚠️ Dev-only | Magic link with real JWT, hardcoded verification |
-| **Projects CRUD** | ✅ Functional | Create + list projects |
+| **Projects CRUD** | ✅ Functional | Create + list + view projects |
 | **Content Studio** | ✅ Functional | Generates via backend AI provider abstraction (DeepSeek/Ollama/OpenAI) |
 | **Research** | ✅ Functional | AI-powered research reports via backend |
 | **Library** | ✅ Functional | PostgreSQL-backed content storage |
@@ -289,7 +303,13 @@ npm run backend:start  # Run compiled backend
 | **Image Generation** | ✅ Functional | ComfyUI wired via `/studio/generate-image` |
 | **Voiceover Generation** | ✅ Functional | Edge TTS wired via `/studio/generate-voice` |
 | **Video Generation** | ✅ Functional | MoneyPrinterTurbo wired via `/studio/generate-video` |
-| **Tests** | ❌ None | Vitest configured but no tests written |
+| **Stock Footage** | ✅ Functional | Pexels API via `/studio/search-stock` |
+| **Video Assembly** | ✅ Functional | FFmpeg via `/studio/assemble-video` |
+| **Transcription** | ✅ Functional | Whisper via `/studio/transcribe` |
+| **Custom Theme** | ✅ Functional | Mint green palette, dark/light mode |
+| **Logo + Favicon** | ✅ Complete | Processed mint-logo.png, favicon.png |
+| **Railway Deploy** | ✅ Configured | railway.json, Dockerfile, healthcheck |
+| **Tests** | ❌ Minimal | Vitest configured but few tests written |
 | **Docker** | ✅ Complete | Dockerfiles + compose with healthchecks |
 
 ---
@@ -305,8 +325,9 @@ Backend:    Fastify 4 + TypeScript 5.7
 Auth:       @fastify/jwt (HMAC-SHA256) + magic-link email
 DB:         PostgreSQL 16 + Prisma 6 ORM
 AI:         DeepSeek (primary) / Ollama (fallback) / OpenAI (optional)
-Media:      ComfyUI (image gen) / MoneyPrinterTurbo (video gen, Docker sidecar) / Edge TTS (voiceover)
-CI/CD:      GitHub Actions + Docker Compose
+Media:      ComfyUI (image) / MoneyPrinterTurbo (video, Docker sidecar) / Edge TTS (voiceover)
+            Pexels (stock footage) / FFmpeg (video assembly) / Whisper (transcription)
+CI/CD:      Docker Compose + Railway
 ```
 
 ---
@@ -319,17 +340,22 @@ mint/
 │   ├── pages/           # Landing, AppHome, Projects, Studio, Research, Library, Publish
 │   ├── components/
 │   │   ├── layout/      # AppShell (Header + Sidebar), AppLayout
-│   │   ├── ui/          # Loading, Skeleton, ErrorBoundary
-│   │   └── ContentGenerator.tsx  # Main AI generation component (Next Actions: voiceover + video)
+│   │   ├── ui/          # Loading, Skeleton, Loader, Button, Input
+│   │   └── ContentGenerator.tsx, RouteGuard.tsx, ThemeProvider.tsx, ErrorBoundary.tsx
 │   ├── hooks/           # useSession (auth state)
 │   ├── stores/          # Zustand/TanStack stores (projects, studio, research, library, publish)
+│   ├── styles/          # globals.css (mint green theme with dark/light)
 │   └── lib/api/         # fetchWrapper, client (typed), auth
+├── frontend/public/     # mint-logo.png, favicon.png
 ├── backend/src/
 │   ├── routes/          # auth, projects, research, studio, library, publish
-│   ├── services/        # Business logic + AI (openai, comfyui, ollama, video, tts)
+│   ├── services/
+│   │   ├── auth, project, studio, research, library, publish
+│   │   └── ai/          # openai, comfyui, tts, video, pexels, whisper, assembly
 │   ├── middleware/      # JWT auth middleware
 │   ├── utils/           # JWT sign/verify
 │   └── lib/             # Error classes (AppError, NotFoundError, ValidationError)
 ├── backend/prisma/      # Schema + migrations
+├── railway.json         # Railway deployment config
 └── docker-compose.yml   # MINT + MoneyPrinterTurbo sidecar
 ```

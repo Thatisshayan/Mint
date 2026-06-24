@@ -41,22 +41,23 @@ export default function Landing() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-6">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-black uppercase text-white">Mint</h1>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-mint-950/20 p-6">
+      <div className="w-full max-w-sm space-y-8">
+        <div className="text-center space-y-3">
+          <img src="/mint-logo.png" alt="Mint" className="mx-auto h-16 w-16" />
+          <h1 className="text-4xl font-black uppercase tracking-tight text-foreground">Mint</h1>
           <p className="text-sm text-muted-foreground">AI Content Workstation</p>
         </div>
-        <div className="space-y-4 rounded-3xl border border-white/5 bg-white/[0.02] p-6">
+        <div className="mint-card p-6 space-y-4">
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-sm text-white placeholder:text-muted-foreground focus:border-mint-400 focus:outline-none"
+            className="mint-input"
           />
           {error && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
@@ -64,7 +65,7 @@ export default function Landing() {
             type="button"
             disabled={loading || !email.trim()}
             onClick={handleSendLink}
-            className="h-12 w-full rounded-2xl bg-mint-500 px-6 font-black uppercase tracking-[0.2em] text-mint-950 shadow-[0_20px_40px_rgba(13,148,136,.35)] hover:brightness-110 disabled:opacity-60"
+            className="mint-btn w-full uppercase tracking-[0.15em]"
           >
             {loading ? 'Sending...' : 'Launch Mint'}
           </button>

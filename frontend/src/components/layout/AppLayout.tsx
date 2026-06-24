@@ -7,11 +7,11 @@ interface AppLayoutProps {
 
 export default function AppLayout({ onSignOut, children }: AppLayoutProps) {
   return (
-    <div className="relative min-h-screen bg-background text-foreground">
+    <div className="relative min-h-screen bg-background">
       <Header onSignOut={onSignOut} />
       <div className="flex min-h-[calc(100vh-64px)]">
         <Sidebar />
-        <main className="flex-1 p-6">
+        <main className="flex-1 overflow-auto p-6 lg:p-8">
           {children}
         </main>
       </div>
