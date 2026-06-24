@@ -16,8 +16,7 @@ export default function Projects() {
   const handleCreate = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!title.trim()) return;
-    const res = await create.mutateAsync({ title: title.trim(), description: description.trim() });
-    const id = (res as any)?.id;
+    await create.mutateAsync({ name: title.trim(), description: description.trim() });
     setTitle('');
     setDescription('');
   };
