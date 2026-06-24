@@ -1,26 +1,73 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import { config } from './config.js';
+import { AppError, ValidationError, NotFoundError, UnauthorizedError } from './lib/errors.js';
 
 export async function buildApp() {
-  const app = fastify({ logger: false });
+  const app = fastify({ logger: { level: config.env === 'production' ? 'warn' : 'info' } });
 
-  await app.register(cors, { origin: true });
+  // CORS: restrictive in production, permissive in development
+  const allowedOrigins = config.env === 'production'
+    ? [process.env.FRONTEND_URL || 'https://mint.app']
+    : true; // allow all in development
 
+  await app.register(cors, {
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  });
+
+  // Rate limiting: stricter for auth endpoints, standard for everything else
+  await app.register(rateLimit, {
+    global: false, // configure per-route
+    max: 100,
+    timeWindow: '1 minute',
+    errorResponseBuilder: (_req, context) => ({
+      statusCode: 429,
+      error: 'Too Many Requests',
+      message: `Rate limit exceeded. Try again in ${context.after}`,
+    }),
+  });
+
+  // Health endpoint (no auth, no rate limit)
   app.get('/health', async () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    env: config.env,
   }));
 
-  app.setErrorHandler((err: any, request: any, reply: any) => {
-    request.log.error(err);
-    reply.status(err.statusCode || 500).send({
-      error: err.code || 'INTERNAL_ERROR',
-      message: err.message || 'Something went wrong',
+  // Global error handler with operational error mapping
+  app.setErrorHandler((err, _request, reply) => {
+    // Operational errors (expected, client-side issues)
+    if (err instanceof AppError) {
+      reply.status(err.statusCode).send({
+        error: err.code,
+        message: err.message,
+        ...(err.details ? { details: err.details } : {}),
+      });
+      return;
+    }
+
+    // Zod validation errors
+    if (err.name === 'ZodError') {
+      const validationError = new ValidationError(err as any);
+      reply.status(validationError.statusCode).send({
+        error: validationError.code,
+        message: validationError.message,
+        details: validationError.details,
+      });
+      return;
+    }
+
+    // Programming errors / unexpected errors
+    app.log.error(err);
+    reply.status(500).send({
+      error: 'INTERNAL_ERROR',
+      message: config.env === 'production' ? 'Something went wrong' : err.message,
     });
   });
 
+  // Register routes with /api prefix
   await app.register((await import('./routes/auth.routes.js')).default, { prefix: '/api' });
   await app.register((await import('./routes/projects.routes.js')).default, { prefix: '/api' });
   await app.register((await import('./routes/research.routes.js')).default, { prefix: '/api' });
@@ -31,6 +78,7 @@ export async function buildApp() {
   const start = async () => {
     try {
       await app.listen({ port: Number(process.env.PORT || 4000), host: '0.0.0.0' });
+      app.log.info(`Server running on http://0.0.0.0:${process.env.PORT || 4000}`);
     } catch (err) {
       app.log.error(err);
       process.exit(1);

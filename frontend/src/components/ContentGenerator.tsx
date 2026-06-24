@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 type GenerationType = 'youtube_script' | 'instagram_caption' | 'thumbnail_prompt' | 'all';
 
@@ -58,9 +61,9 @@ export function useGenerateContent() {
               content: generateFallback(input),
               createdAt: new Date().toISOString(),
             },
-          ];
-        }
-      };
+          ],
+        };
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['library'] });
@@ -82,24 +85,37 @@ export function useLibraryItems() {
   });
 }
 
+const generationFormSchema = z.object({
+  topic: z.string().min(3, 'Topic must be at least 3 characters'),
+  type: z.enum(['youtube_script', 'instagram_caption', 'thumbnail_prompt', 'all']),
+  tone: z.enum(['professional', 'casual', 'educational', 'entertaining']),
+});
+
 export function ContentGenerator() {
   const [projectId] = useState('default-project');
-  const [topic, setTopic] = useState('');
-  const [type, setType] = useState<GenerationType>('youtube_script');
-  const [tone, setTone] = useState<'professional' | 'casual' | 'educational' | 'entertaining'>('educational');
   const generate = useGenerateContent();
   const [selectedItem, setSelectedItem] = useState<GeneratedItem | null>(null);
   const [copyFeedback, setCopyFeedback] = useState('');
 
-  const handleGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!topic.trim()) return;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<z.infer<typeof generationFormSchema>>({
+    resolver: zodResolver(generationFormSchema),
+    defaultValues: {
+      topic: '',
+      type: 'youtube_script',
+      tone: 'educational',
+    },
+  });
 
+  const onSubmit = async (data: z.infer<typeof generationFormSchema>) => {
     const result = await generate.mutateAsync({
       projectId,
-      topic: topic.trim(),
-      type,
-      tone,
+      topic: data.topic.trim(),
+      type: data.type,
+      tone: data.tone,
     });
 
     if (result.items?.[0]) setSelectedItem(result.items[0]);
@@ -134,20 +150,22 @@ export function ContentGenerator() {
         </span>
       </div>
 
-      <form onSubmit={handleGenerate} className="mt-8 space-y-4 rounded-3xl border border-white/5 bg-white/[0.02] p-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4 rounded-3xl border border-white/5 bg-white/[0.02] p-6">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
               Topic / Brief
             </label>
-            <textarea
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              rows={3}
-              required
-              className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-muted-foreground focus:border-mint-400 focus:outline-none"
+            <input
+              {...register('topic')}
+              className={`w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-muted-foreground focus:border-mint-400 focus:outline-none ${
+                errors.topic ? 'border-red-500' : ''
+              }`}
               placeholder="e.g., 3 AI tools that automate faceless YouTube channels in 2026"
             />
+            {errors.topic && (
+              <p className="mt-1 text-sm text-red-500">{errors.topic.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -155,37 +173,49 @@ export function ContentGenerator() {
               Content Type
             </label>
             <select
-              value={type}
-              onChange={(e) => setType(e.target.value as GenerationType)}
-              className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-sm text-white focus:border-mint-400 focus:outline-none"
+              {...register('type')}
+              className={`h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-sm text-white focus:border-mint-400 focus:outline-none ${
+                errors.type ? 'border-red-500' : ''
+              }`}
             >
               <option value="youtube_script">YouTube Script (60s)</option>
               <option value="instagram_caption">Instagram Caption</option>
               <option value="thumbnail_prompt">Thumbnail Prompt</option>
               <option value="all">Full Package (All)</option>
             </select>
+            {errors.type && (
+              <p className="mt-1 text-sm text-red-500">{errors.type.message}</p>
+            )}
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Tone</label>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              Tone
+            </label>
             <select
-              value={tone}
-              onChange={(e) => setTone(e.target.value as typeof tone)}
-              className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-xs text-white focus:border-mint-400 focus:outline-none"
+              {...register('tone')}
+              className={`h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-xs text-white focus:border-mint-400 focus:outline-none ${
+                errors.tone ? 'border-red-500' : ''
+              }`}
             >
               <option value="educational">Educational</option>
               <option value="professional">Professional</option>
               <option value="casual">Casual</option>
               <option value="entertaining">Entertaining</option>
             </select>
+            {errors.tone && (
+              <p className="mt-1 text-sm text-red-500">{errors.tone.message}</p>
+            )}
           </div>
 
           <button
             type="submit"
-            disabled={generate.isPending || !topic.trim()}
-            className="ml-auto h-12 rounded-2xl bg-mint-500 px-8 font-black uppercase tracking-[0.2em] text-mint-950 shadow-[0_20px_40px_rgba(13,148,136,.35)] hover:brightness-110 disabled:opacity-60"
+            disabled={isSubmitting}
+            className={`ml-auto h-12 rounded-2xl bg-mint-500 px-8 font-black uppercase tracking-[0.2em] text-mint-950 shadow-[0_20px_40px_rgba(13,148,136,.35)] hover:brightness-110 disabled:opacity-60 ${
+              isSubmitting ? 'opacity-70' : ''
+            }`}
           >
             {generate.isPending ? 'Generating…' : 'Generate'}
           </button>
@@ -193,7 +223,7 @@ export function ContentGenerator() {
 
         {generate.isError && (
           <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
-            {(generate.error as Error).message}
+            {(generate.error as Error)?.message}
           </div>
         )}
       </form>
@@ -219,7 +249,7 @@ export function ContentGenerator() {
 
           <div className="lg:col-span-2 space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Next actions</h3>
-            <div className="grid gap-3">
+            <div className="gap-3">
               <button
                 onClick={() => copyToClipboard(selectedItem.content)}
                 className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50"
