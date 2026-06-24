@@ -3,13 +3,13 @@
 ## Priority Legend
 🔥 = Current phase   ⏳ = Next   📅 = Planned
 
-### Phase 1: Wire AI Services (🔥 IN PROGRESS)
-- [ ] Create AI provider abstraction (interface for DeepSeek/Ollama/OpenAI)
-- [ ] Wire DeepSeek/Ollama to Studio routes (text generation)
-- [ ] Wire ComfyUI to image generation route
+### Phase 1: Wire AI Services (✅ DONE)
+- [x] Create AI provider abstraction (interface for DeepSeek/Ollama/OpenAI)
+- [x] Wire DeepSeek/Ollama to Studio routes (text generation)
+- [x] Wire ComfyUI to image generation route
 - [ ] Add streaming AI responses (SSE)
-- [ ] Add prompt templates (script, hook, scenario, thumbnail)
-- [ ] Remove direct Ollama call from browser (route through backend)
+- [x] Add prompt templates (script, hook, scenario, thumbnail)
+- [x] Remove direct Ollama call from browser (route through backend)
 - [ ] Add per-user rate limiting on AI endpoints
 
 ### Phase 2: Video Pipeline (⏳ NEXT)
@@ -65,3 +65,4 @@
 - [x] ComfyUI service: added polling + proper history API
 - [x] Railway PostgreSQL provisioned + Prisma migrated
 - [x] All Prisma service-layer bugs fixed (field name mismatches)
+- [x] Wire Projects/Library/Publish routes to Prisma services

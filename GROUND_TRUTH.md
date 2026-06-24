@@ -2,25 +2,24 @@
 
 ## Current State (June 2026)
 
+Phase 1 complete — AI services wired to routes.
+
 ### What Works
 - User authentication: Dev-only magic link with real JWT signing
 - PostgreSQL database: Railway-hosted, Prisma-migrated
 - API routes: All endpoints registered under `/api` prefix
 - Frontend shell: Route guard, sidebar, header, error boundary
-- Content Generator: Direct Ollama call from browser (bypasses backend API)
+- Content Generator: Generates via backend API using AI provider abstraction
+- AI provider abstraction: DeepSeek/Ollama/OpenAI interchangeable (configurable via LLM_PROVIDER)
 - JWT auth middleware: Registered and working
 - Rate limiting: Per-route (5 req/min for auth, 100/min for API)
 - Error handling: Global error handler with Zod validation
 
 ### What's Partial
-- AI services (OpenAI, ComfyUI, Ollama): implementations exist but not wired to routes
-- All backend API endpoints return stub/placeholder data
 - Auth flow: Magic link is never emailed (dev-hardcoded)
 - Frontend design: Custom green theme started, needs polish
 
 ### What's Missing
-- AI services wired to route handlers (Phase 1)
-- Image generation (ComfyUI service exists, not connected)
 - Video generation (coming in Phase 2 with MoneyPrinterTurbo)
 - TTS/voiceover (coming in Phase 2)
 - Streaming AI responses (planned)

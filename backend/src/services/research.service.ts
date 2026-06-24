@@ -2,20 +2,31 @@ import { prisma } from './db.js';
 import { z } from 'zod';
 
 const createResearchSchema = z.object({
-  projectId: z.string().min(1),
-  query: z.string().min(2).max(500),
+  projectId: z.string().optional(),
+  query: z.string().min(2).max(2000),
+  summary: z.string().optional(),
 });
 
 export async function createResearch(userId: string, input: unknown) {
   const data = createResearchSchema.parse(input);
-  const project = await prisma.contentProject.findFirst({ where: { id: data.projectId, userId } });
-  if (!project) {
-    throw new Error('Project not found');
+  let projectId = data.projectId || null;
+
+  if (data.projectId) {
+    const project = await prisma.contentProject.findFirst({ where: { id: data.projectId, userId } });
+    if (!project) {
+      throw new Error('Project not found');
+    }
+    projectId = project.id;
   }
-  const prompt = data.query;
-  const summary = `${prompt}\n\n[research placeholder]\n`;
+
   return prisma.researchReport.create({
-    data: { projectId: project.id, query: prompt, source: 'local', summary, userId },
+    data: {
+      projectId,
+      query: data.query,
+      source: 'ai',
+      summary: data.summary || `${data.query}\n\n[research placeholder]`,
+      userId,
+    },
   });
 }
 

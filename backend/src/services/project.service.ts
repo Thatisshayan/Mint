@@ -9,7 +9,7 @@ const createProjectSchema = z.object({
 export async function createProject(userId: string, input: unknown) {
   const data = createProjectSchema.parse(input);
   return prisma.contentProject.create({
-    data: { ...(data as any), userId } as any,
+    data: { title: data.title, description: data.description ?? null, status: 'draft', userId },
   });
 }
 

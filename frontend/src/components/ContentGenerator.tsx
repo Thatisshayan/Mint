@@ -3,8 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { apiClient } from '@/lib/api/client';
 
-type GenerationType = 'youtube_script' | 'instagram_caption' | 'thumbnail_prompt' | 'all';
+type GenerationType = string;
 
 type GeneratedItem = {
   id: string;
@@ -20,50 +21,34 @@ type GenerationInput = {
   tone?: 'professional' | 'casual' | 'educational' | 'entertaining';
 };
 
-const OLLAMA_BASE_URL = 'http://localhost:11434';
+const typeMap: Record<string, string> = {
+  youtube_script: 'script',
+  instagram_caption: 'caption',
+  thumbnail_prompt: 'thumbnail',
+  hook: 'hook',
+  scenario: 'scenario',
+  all: 'full_package',
+};
 
 export function useGenerateContent() {
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: GenerationInput) => {
-      try {
-        const res = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'llama3.1:8b',
-            prompt: buildPrompt(input),
-            stream: false,
-          }),
-        });
-
-        if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
-        const json = (await res.json()) as { response?: string };
-        const content = json.response ?? generateFallback(input);
-
-        return {
-          items: [
-            {
-              id: 'local-' + Date.now(),
-              type: input.type,
-              content,
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        };
-      } catch {
-        return {
-          items: [
-            {
-              id: 'local-' + Date.now(),
-              type: input.type,
-              content: generateFallback(input),
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        };
-      }
+      const res = await apiClient.post('/studio/generate', {
+        type: typeMap[input.type] || input.type,
+        topic: input.topic,
+        tone: input.tone,
+      });
+      const data = await res.json();
+      return {
+        items: [{
+          id: data.id,
+          type: input.type,
+          content: data.content,
+          createdAt: data.createdAt,
+        }],
+      };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['library'] });
@@ -87,7 +72,7 @@ export function useLibraryItems() {
 
 const generationFormSchema = z.object({
   topic: z.string().min(3, 'Topic must be at least 3 characters'),
-  type: z.enum(['youtube_script', 'instagram_caption', 'thumbnail_prompt', 'all']),
+  type: z.enum(['youtube_script', 'instagram_caption', 'thumbnail_prompt', 'hook', 'scenario', 'all']),
   tone: z.enum(['professional', 'casual', 'educational', 'entertaining']),
 });
 
@@ -145,9 +130,6 @@ export function ContentGenerator() {
         <h1 className="text-3xl font-black uppercase text-white">
           Content Studio
         </h1>
-        <span className="rounded-full bg-mint-500/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-mint-400">
-          Ollama Local
-        </span>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4 rounded-3xl border border-white/5 bg-white/[0.02] p-6">
@@ -181,6 +163,8 @@ export function ContentGenerator() {
               <option value="youtube_script">YouTube Script (60s)</option>
               <option value="instagram_caption">Instagram Caption</option>
               <option value="thumbnail_prompt">Thumbnail Prompt</option>
+              <option value="hook">Hook Generator (5 openings)</option>
+              <option value="scenario">Scenario Planner</option>
               <option value="all">Full Package (All)</option>
             </select>
             {errors.type && (
@@ -290,30 +274,3 @@ export function ContentGenerator() {
   );
 }
 
-function buildPrompt(input: GenerationInput) {
-  const tone = input.tone || 'educational';
-  if (input.type === 'youtube_script') {
-    return `You are a YouTube scriptwriter for a faceless channel. Topic: "${input.topic}". Tone: ${tone}. Write a 60-second YouTube Shorts script with hook, body, and CTA. Do not mention that you are an AI.`;
-  }
-  if (input.type === 'instagram_caption') {
-    return `You are a social media manager. Topic: "${input.topic}". Tone: ${tone}. Write one concise Instagram caption with relevant hashtags.`;
-  }
-  if (input.type === 'thumbnail_prompt') {
-    return `You are a thumbnail prompt engineer for a faceless YouTube/Instagram channel. Topic: "${input.topic}". Write a detailed visual thumbnail prompt suitable for image generation.`;
-  }
-  return `You are a content creator working on topic: "${input.topic}". Tone: ${tone}. Provide a complete faceless content package including short script, caption, and thumbnail prompt.`;
-}
-
-function generateFallback(input: GenerationInput) {
-  const topic = input.topic;
-  if (input.type === 'youtube_script') {
-    return `[LOCAL SCRIPT]\nHook: What if I told you ${topic} can actually run itself?\nBody: 3 practical points, explained fast.\nCTA: Follow for more AI shortcuts.`;
-  }
-  if (input.type === 'instagram_caption') {
-    return `${topic}\n\nQuick breakdown in reel. Follow if you want more.`;
-  }
-  if (input.type === 'thumbnail_prompt') {
-    return `Thumbnail: futuristic minimalist style, headline text "${topic}", dark background, high contrast, no human face`;
-  }
-  return `YouTube script: Hook + 3 points + CTA about ${topic}.\nCaption: Short punchy line.\nThumbnail prompt: minimalist dark style, bold text.`;
-}

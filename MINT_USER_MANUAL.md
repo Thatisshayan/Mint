@@ -68,21 +68,21 @@ The core feature. Generate content via AI.
 
 **How generation works:**
 1. You fill in the form (Zod validation on all fields)
-2. MINT sends your brief + tone + type to **Ollama** (local `llama3.1:8b` running at `localhost:11434`)
-3. A specialized prompt is built depending on content type:
+2. MINT sends your brief + tone + type to the backend API (`POST /api/studio/generate`)
+3. Backend selects the configured AI provider (DeepSeek / Ollama / OpenAI via `LLM_PROVIDER` env var)
+4. A specialized prompt template is built depending on content type:
    - **YouTube Script**: Hook + body + CTA (60-second Shorts format)
    - **Instagram Caption**: Short caption + hashtags
    - **Thumbnail Prompt**: Visual description for image generation
    - **Full Package**: All three combined
-4. If Ollama is unreachable, a **fallback template** generates placeholder content
+5. The provider generates text content; for image generation, the route forwards to ComfyUI
+6. The response is returned to the frontend for copying, saving, or further editing
 
 **After generation:**
 - Copy to clipboard
-- Save to Library (stored in localStorage)
+- Save to Library (persisted in PostgreSQL via backend API)
 
-**Upcoming (Phase 1):**
-- AI provider abstraction (DeepSeek/Ollama/OpenAI) wired through backend routes
-- ComfyUI integration — will generate thumbnail images from prompts
+**Upcoming:**
 - Streaming AI responses (SSE)
 - Per-user rate limiting on AI endpoints
 
@@ -90,11 +90,15 @@ The core feature. Generate content via AI.
 
 ### 4. Research (`/app/research`)
 
-Competitor and keyword research tool.
+Competitor and keyword research tool powered by AI.
 
-**Currently:** Placeholder. Submits a query to `POST /api/research` which returns a static stub response.
+**What you can do:**
+- Enter a topic or keyword to analyze
+- MINT sends your query to the backend (`POST /api/research`)
+- Backend uses the AI provider to generate a structured research report
+- Results include competitive analysis, content gaps, and trend insights
 
-**Planned:** Integration with search APIs for competitive analysis data.
+**Tech:** AI-powered research via DeepSeek/Ollama/OpenAI provider.
 
 ---
 
@@ -102,19 +106,26 @@ Competitor and keyword research tool.
 
 Store and manage your generated content.
 
-**Currently:** Placeholder — shows "Library coming next." All generated content is saved to `localStorage` for demo purposes.
+**What you can do:**
+- View all saved generated content (scripts, captions, thumbnails)
+- Filter by project or content type
+- Delete saved items
+- Save generated content directly from the Studio
 
-**Planned:** Full CRUD with PostgreSQL persistence, filtering by project, status management (draft/published/archived), search, bulk operations.
+**Tech:** Data persisted via PostgreSQL through `GET/POST/DELETE /api/library` routes.
 
 ---
 
 ### 6. Publish (`/app/publish`)
 
-Schedule and post content to social platforms.
+Queue and manage content for publication.
 
-**Currently:** Placeholder — shows "Publish queue coming next."
+**What you can do:**
+- View queued content items
+- Manage publish queue status (pending/scheduled/published)
+- Remove items from queue
 
-**Planned:** Queue management, platform selection (YouTube, Instagram), scheduling calendar, webhook integration.
+**Tech:** Queue management via `GET/POST /api/publish` routes backed by PostgreSQL.
 
 ---
 
@@ -122,12 +133,12 @@ Schedule and post content to social platforms.
 
 | Provider | Status | Model | Endpoint | Env Var |
 |----------|--------|-------|----------|---------|
-| **Ollama** (browser direct) | ✅ Active | `llama3.1:8b` | `http://localhost:11434` | `OLLAMA_BASE_URL` |
-| **DeepSeek API** | 🔧 Planned | DeepSeek V3 | API cloud | `DEEPSEEK_API_KEY` |
-| **OpenAI** | 🟡 Service exists | `gpt-4o-mini` | `https://api.openai.com/v1` | `OPENAI_API_KEY` |
-| **ComfyUI** | 🟡 Service exists | Any SD model | Configurable | `COMFYUI_BASE_URL` |
+| **DeepSeek API** | ✅ Active (primary) | DeepSeek V3 | API cloud | `DEEPSEEK_API_KEY` |
+| **Ollama** | ✅ Active (fallback) | `llama3.1:8b` | `http://localhost:11434` | `OLLAMA_BASE_URL` |
+| **OpenAI** | ✅ Active (optional) | `gpt-4o-mini` | `https://api.openai.com/v1` | `OPENAI_API_KEY` |
+| **ComfyUI** | ✅ Active | Any SD model | Configurable | `COMFYUI_BASE_URL` |
 
-OpenAI and ComfyUI service implementations exist but are not yet wired to route handlers.
+All providers are wired through the backend AI provider abstraction, selectable via `LLM_PROVIDER` env var.
 
 ---
 
@@ -256,11 +267,11 @@ npm run backend:start  # Run compiled backend
 |-----------|--------|-------|
 | **Auth** | ⚠️ Dev-only | Magic link with real JWT, hardcoded verification |
 | **Projects CRUD** | ✅ Functional | Create + list projects |
-| **Content Studio** | ✅ Functional | Generates via Ollama directly from browser |
-| **Research** | ⚠️ Stub | Submits query, returns static response |
-| **Library** | ⚠️ Stub | localStorage-based, PG planned |
-| **Publish** | ❌ Placeholder | Not implemented |
-| **OpenAI/ComfyUI** | 🟡 Service exists | Implemented but not wired to routes |
+| **Content Studio** | ✅ Functional | Generates via backend AI provider abstraction (DeepSeek/Ollama/OpenAI) |
+| **Research** | ✅ Functional | AI-powered research reports via backend |
+| **Library** | ✅ Functional | PostgreSQL-backed content storage |
+| **Publish** | ✅ Functional | Queue management via Prisma |
+| **Image Generation** | ✅ Functional | ComfyUI wired via `/studio/generate-image` |
 | **Tests** | ❌ None | Vitest configured but no tests written |
 | **Docker** | ✅ Complete | Dockerfiles + compose with healthchecks |
 
@@ -276,7 +287,7 @@ Animation:  Framer Motion 12
 Backend:    Fastify 4 + TypeScript 5.7
 Auth:       @fastify/jwt (HMAC-SHA256) + magic-link email
 DB:         PostgreSQL 16 + Prisma 6 ORM
-AI:         Ollama (active) / DeepSeek (planned) / OpenAI (service exists) / ComfyUI (service exists)
+AI:         DeepSeek (primary) / Ollama (fallback) / OpenAI (optional) / ComfyUI (image gen)
 CI/CD:      GitHub Actions + Docker Compose
 ```
 

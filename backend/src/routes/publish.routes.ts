@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { authMiddleware } from '../middleware/auth.js';
 
 const publishSchema = z.object({
   postId: z.string().min(1, 'Post ID is required'),
@@ -6,14 +7,16 @@ const publishSchema = z.object({
 });
 
 export default async function publishRoutes(fastify: any) {
-  fastify.post('/publish', async (request: any, reply: any) => {
+  fastify.get('/publish', { preHandler: authMiddleware }, async (request: any) => {
+    const { getQueue } = await import('../services/publish.service.js');
+    const userId = request.user?.sub || request.user?.email;
+    return { queue: await getQueue(userId) };
+  });
+
+  fastify.post('/publish', { preHandler: authMiddleware }, async (request: any) => {
     const body = publishSchema.parse(request.body);
-    return {
-      success: true,
-      postId: body.postId,
-      platform: body.platform,
-      status: 'queued',
-      queuedAt: new Date().toISOString(),
-    };
+    const { publishPost } = await import('../services/publish.service.js');
+    const userId = request.user?.sub || request.user?.email;
+    return await publishPost(userId, body.postId);
   });
 }
