@@ -39,3 +39,17 @@ export async function listResearch(userId: string, projectId?: string) {
     orderBy: { createdAt: 'desc' },
   });
 }
+
+export async function getResearch(userId: string, id: string) {
+  return prisma.researchReport.findFirst({
+    where: { id, userId },
+  });
+}
+
+export async function deleteResearch(userId: string, id: string) {
+  const report = await prisma.researchReport.findFirst({ where: { id, userId } });
+  if (!report) {
+    throw new Error('Research report not found');
+  }
+  return prisma.researchReport.delete({ where: { id } });
+}

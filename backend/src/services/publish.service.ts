@@ -20,3 +20,17 @@ export async function publishPost(userId: string, id: string) {
     data: { status: 'published' },
   });
 }
+
+export async function getPublishItem(userId: string, id: string) {
+  return prisma.generatedPost.findFirst({
+    where: { id, userId },
+  });
+}
+
+export async function deleteFromQueue(userId: string, id: string) {
+  const post = await prisma.generatedPost.findFirst({ where: { id, userId } });
+  if (!post) {
+    throw new Error('Post not found');
+  }
+  return prisma.generatedPost.delete({ where: { id } });
+}

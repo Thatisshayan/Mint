@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 const NAV = [
   { label: 'Projects', to: '/app/projects' },
   { label: 'Studio', to: '/app/studio' },
+  { label: 'Research', to: '/app/research' },
   { label: 'Library', to: '/app/library' },
   { label: 'Publish', to: '/app/publish' },
 ];

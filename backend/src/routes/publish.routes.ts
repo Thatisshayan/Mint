@@ -19,4 +19,24 @@ export default async function publishRoutes(fastify: any) {
     const userId = request.user?.sub || request.user?.email;
     return await publishPost(userId, body.postId);
   });
+
+  fastify.get('/publish/:id', { preHandler: authMiddleware }, async (request: any) => {
+    const { id } = request.params as { id: string };
+    const { getPublishItem } = await import('../services/publish.service.js');
+    const userId = request.user?.sub || request.user?.email;
+    const item = await getPublishItem(userId, id);
+    if (!item) {
+      throw new Error('Post not found');
+    }
+    return item;
+  });
+
+  fastify.delete('/publish/:id', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+    const { id } = request.params as { id: string };
+    const { deleteFromQueue } = await import('../services/publish.service.js');
+    const userId = request.user?.sub || request.user?.email;
+    await deleteFromQueue(userId, id);
+    reply.status(204);
+    return { success: true };
+  });
 }

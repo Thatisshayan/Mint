@@ -42,4 +42,24 @@ export default async function researchRoutes(fastify: any) {
       createdAt: new Date().toISOString(),
     };
   });
+
+  fastify.get('/research/:id', { preHandler: authMiddleware }, async (request: any) => {
+    const { id } = request.params as { id: string };
+    const { getResearch } = await import('../services/research.service.js');
+    const userId = request.user?.sub || request.user?.email;
+    const report = await getResearch(userId, id);
+    if (!report) {
+      throw new Error('Research report not found');
+    }
+    return report;
+  });
+
+  fastify.delete('/research/:id', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+    const { id } = request.params as { id: string };
+    const { deleteResearch } = await import('../services/research.service.js');
+    const userId = request.user?.sub || request.user?.email;
+    await deleteResearch(userId, id);
+    reply.status(204);
+    return { success: true };
+  });
 }

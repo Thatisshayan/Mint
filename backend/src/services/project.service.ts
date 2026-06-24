@@ -25,3 +25,27 @@ export async function getProject(userId: string, id: string) {
     where: { id, userId },
   });
 }
+
+export async function updateProject(userId: string, id: string, input: unknown) {
+  const data = createProjectSchema.partial().parse(input);
+  const project = await prisma.contentProject.findFirst({ where: { id, userId } });
+  if (!project) {
+    throw new Error('Project not found');
+  }
+  return prisma.contentProject.update({
+    where: { id },
+    data: {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.description !== undefined && { description: data.description }),
+      updatedAt: new Date(),
+    },
+  });
+}
+
+export async function deleteProject(userId: string, id: string) {
+  const project = await prisma.contentProject.findFirst({ where: { id, userId } });
+  if (!project) {
+    throw new Error('Project not found');
+  }
+  return prisma.contentProject.delete({ where: { id } });
+}

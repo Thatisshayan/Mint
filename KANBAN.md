@@ -24,9 +24,14 @@
 | 14 | Fix `tsconfig.app.json` paths | DONE | `@/*` maps to `./frontend/src/*` |
 | 15 | Add token expiry validation | DONE | `useSession.ts` clears expired tokens |
 | 16 | Connect DB explicitly | DONE | `connectDb()` called before `app.listen()` |
-| 17 | Sprint 1a: Complete Library + Publish + Research pages | TODO | Wire Research to router; build Library CRUD; build Publish queue |
-| 18 | Sprint 1b: Wire AI studio stubs | TODO | `generateIdeas` and `generateImage` need real AI provider integration |
-| 19 | Sprint 2: AI quality + daily use polish | TODO | Prompt A/B testing, cost tracking, keyboard shortcuts, export formats |
-| 20 | Sprint 3: Reliability + DevEx | TODO | Sentry, structured logging, circuit breaker, basic tests, one-command startup |
-| 21 | Sprint 4: Personal workflow features | TODO | Tags, search, favorites, templates, dashboard, auto-save |
-| 22 | Sprint 5: Final polish | TODO | Performance, animations, responsive, dark mode, Lighthouse 90+ |
+| 17 | Add CRUD endpoints (GET/:id, PATCH, DELETE) | DONE | All resources: projects, research, library, publish |
+| 18 | Build Library page | DONE | Full page with list, filter, detail modal, delete, archive |
+| 19 | Build Publish page | DONE | Full page with queue, publish, copy, remove |
+| 20 | Wire Research to router + sidebar | DONE | `App.tsx` has route; `AppShell.tsx` has sidebar link |
+| 21 | Rewrite stores/library.ts as TanStack Query | DONE | useLibrary, useLibraryItem, useDelete, useUpdate, useSaveToLibrary |
+| 22 | Rewrite stores/publish.ts as TanStack Query | DONE | usePublishQueue, usePublishItem, useDeletePublishItem |
+| 23 | Sprint 1b: Wire AI studio stubs to real providers | TODO | `generateIdeas` and `generateImage` need real AI provider integration |
+| 24 | Sprint 2: AI quality + daily use polish | TODO | Prompt A/B testing, cost tracking, keyboard shortcuts, export formats |
+| 25 | Sprint 3: Reliability + DevEx | TODO | Sentry, structured logging, circuit breaker, basic tests, one-command startup |
+| 26 | Sprint 4: Personal workflow features | TODO | Tags, search, favorites, templates, dashboard, auto-save |
+| 27 | Sprint 5: Final polish | TODO | Performance, animations, responsive, dark mode, Lighthouse 90+ |

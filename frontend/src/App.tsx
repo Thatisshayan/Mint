@@ -7,6 +7,7 @@ import Projects from '@/pages/Projects';
 import Studio from '@/pages/Studio';
 import Library from '@/pages/Library';
 import Publish from '@/pages/Publish';
+import Research from '@/pages/Research';
 import NotFound from '@/pages/NotFound';
 import AppLayout from '@/components/layout/AppLayout';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -32,6 +33,7 @@ export default function App() {
                       <Route index element={<Projects />} />
                       <Route path="projects" element={<Projects />} />
                       <Route path="studio" element={<Studio />} />
+                      <Route path="research" element={<Research />} />
                       <Route path="library" element={<Library />} />
                       <Route path="publish" element={<Publish />} />
                       <Route path="*" element={<NotFound />} />
