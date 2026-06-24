@@ -96,6 +96,7 @@ export function ContentGenerator() {
   const generate = useGenerateContent();
   const [selectedItem, setSelectedItem] = useState<GeneratedItem | null>(null);
   const [copyFeedback, setCopyFeedback] = useState('');
+  const qc = useQueryClient();
 
   const {
     register,
@@ -128,7 +129,6 @@ export function ContentGenerator() {
   };
 
   const saveToLibrary = async (item: GeneratedItem) => {
-    const qc = useQueryClient();
     const current = qc.getQueryData<{ items: GeneratedItem[] }>(['library']);
     const next = { items: [item, ...(current?.items ?? [])] };
     qc.setQueryData(['library'], next);

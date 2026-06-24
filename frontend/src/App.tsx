@@ -8,7 +8,8 @@ import Studio from '@/pages/Studio';
 import Library from '@/pages/Library';
 import Publish from '@/pages/Publish';
 import NotFound from '@/pages/NotFound';
-import { Sidebar, Header } from '@/components/layout/AppShell';
+import AppLayout from '@/components/layout/AppLayout';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { useSession } from '@/hooks/useSession';
 
 export default function App() {
@@ -25,22 +26,18 @@ export default function App() {
             path="/app/*"
             element={
               session?.user ? (
-                <div className="relative min-h-screen bg-background text-foreground">
-                  <Header onSignOut={signOut} />
-                  <div className="flex min-h-[calc(100vh-64px)]">
-                    <Sidebar />
-                    <main className="flex-1">
-                      <Routes>
-                        <Route index element={<Projects />} />
-                        <Route path="projects" element={<Projects />} />
-                        <Route path="studio" element={<Studio />} />
-                        <Route path="library" element={<Library />} />
-                        <Route path="publish" element={<Publish />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </main>
-                  </div>
-                </div>
+                <AppLayout onSignOut={signOut}>
+                  <ErrorBoundary>
+                    <Routes>
+                      <Route index element={<Projects />} />
+                      <Route path="projects" element={<Projects />} />
+                      <Route path="studio" element={<Studio />} />
+                      <Route path="library" element={<Library />} />
+                      <Route path="publish" element={<Publish />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </ErrorBoundary>
+                </AppLayout>
               ) : (
                 <Navigate to="/" replace />
               )
