@@ -2,10 +2,11 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
-COPY . .
-RUN npx prisma generate --schema backend/prisma/schema.prisma
-RUN npx tsc -p backend/tsconfig.json
-RUN npm run build
+COPY backend/tsconfig.json ./tsconfig.json
+COPY backend/src ./src
+COPY backend/prisma ./prisma
+RUN npx prisma generate --schema prisma/schema.prisma
+RUN npx tsc -p tsconfig.json
 
 FROM node:20-alpine
 WORKDIR /app
