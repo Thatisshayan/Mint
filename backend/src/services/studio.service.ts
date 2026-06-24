@@ -41,23 +41,48 @@ const ollamaChatSchema = z.object({
   prompt: z.string().min(1).max(12000),
   system: z.string().max(4000).optional(),
   format: z.string().optional(),
+  stream: z.boolean().optional(),
 });
 
-export async function generateWithOllama(input: { prompt: string; system?: string; model?: string }) {
+export async function generateWithOllama(input: { prompt: string; system?: string; model?: string; stream?: boolean }) {
   const data = ollamaChatSchema.parse(input);
   const base = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\/$/, '');
-  const res = await fetch(`${base}/api/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: data.model,
-      prompt: data.prompt,
-      system: data.system,
-      format: data.format ?? undefined,
-      stream: false,
-    }),
-  });
-  if (!res.ok) throw new Error(`Ollama generation failed: ${res.status}`);
-  const json = (await res.json()) as { response?: string };
-  return { output: json.response ?? '', model: data.model };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
+  try {
+    const res = await fetch(`${base}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: data.model,
+        prompt: data.prompt,
+        system: data.system,
+        format: data.format ?? undefined,
+        stream: data.stream ?? false,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const details = await res.text().catch(() => '');
+      throw new Error(`Ollama generation failed (${res.status}): ${details || res.statusText}`);
+    }
+
+    const text = await res.text();
+    if (!text) throw new Error('Ollama generation returned empty response');
+
+    try {
+      const json = JSON.parse(text) as { done?: boolean; response?: string };
+      return { output: json.response ?? '', model: data.model, done: json.done ?? true };
+    } catch {
+      return { output: text, model: data.model, done: true };
+    }
+  } catch (err) {
+    if ((err as any)?.name === 'AbortError') throw new Error(`Ollama generation aborted after 30s`);
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
