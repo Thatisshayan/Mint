@@ -4,6 +4,9 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    outDir: 'frontend/dist',
+  },
   server: {
     port: 5173,
     strictPort: true,

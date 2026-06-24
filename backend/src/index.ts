@@ -1,8 +1,11 @@
 import fastify from 'fastify';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
 import helmet from '@fastify/helmet';
+import fastifyStatic from '@fastify/static';
 import { config } from './config.js';
 import { AppError, ValidationError } from './lib/errors.js';
 
@@ -73,6 +76,15 @@ export async function buildApp() {
       error: 'INTERNAL_ERROR',
       message: config.env === 'production' ? 'Something went wrong' : err.message,
     });
+  });
+
+  // Serve frontend static files in production
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+  await app.register(fastifyStatic, {
+    root: frontendDist,
+    prefix: '/',
+    wildcard: false,
   });
 
   // Register routes with /api prefix

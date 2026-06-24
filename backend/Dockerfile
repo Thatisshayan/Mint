@@ -2,17 +2,18 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
-COPY backend/src ./src
-COPY backend/tsconfig.json ./tsconfig.json
-RUN npx tsc -p tsconfig.json
-RUN npx prisma generate
+COPY . .
+RUN npx prisma generate --schema backend/prisma/schema.prisma
+RUN npx tsc -p backend/tsconfig.json
+RUN npm run build
 
 FROM node:20-alpine
 WORKDIR /app
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/backend/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
-COPY backend/prisma ./prisma
+COPY --from=builder /app/backend/prisma ./prisma
+COPY --from=builder /app/frontend/dist ./frontend/dist
 ENV NODE_ENV=production
 EXPOSE 4000
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 --start-period=20s \
