@@ -1,5 +1,6 @@
 import fastify from 'fastify';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
@@ -78,17 +79,31 @@ export async function buildApp() {
     });
   });
 
-  // Serve frontend static files in production
+  // API routes
+  await app.register((await import('./routes/auth.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/projects.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/research.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/studio.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/library.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/publish.routes.js')).default, { prefix: '/api' });
+
+  // Serve frontend static files in production (after API routes to avoid conflicts)
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+  const indexHtmlPath = path.join(frontendDist, 'index.html');
   await app.register(fastifyStatic, {
     root: frontendDist,
     prefix: '/',
     wildcard: false,
   });
 
-  // Register routes with /api prefix
-  await app.register((await import('./routes/auth.routes.js')).default, { prefix: '/api' });
+  // SPA fallback: serve index.html for any non-API route
+  app.setNotFoundHandler((_req, reply) => {
+    if (fs.existsSync(indexHtmlPath)) {
+      return reply.type('text/html').send(fs.readFileSync(indexHtmlPath, 'utf-8'));
+    }
+    return reply.status(404).send({ error: 'NOT_FOUND', message: 'Route not found' });
+  });
   await app.register((await import('./routes/projects.routes.js')).default, { prefix: '/api' });
   await app.register((await import('./routes/research.routes.js')).default, { prefix: '/api' });
   await app.register((await import('./routes/studio.routes.js')).default, { prefix: '/api' });
