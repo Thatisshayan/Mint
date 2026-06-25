@@ -2,6 +2,7 @@ import { Sidebar, Header } from '@/components/layout/AppShell';
 import KeyboardShortcutsModal from '@/components/KeyboardShortcutsModal';
 import OfflineIndicator from '@/components/OfflineIndicator';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 interface AppLayoutProps {
   onSignOut: () => void;
@@ -9,11 +10,13 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ onSignOut, children }: AppLayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="relative min-h-screen bg-background">
-      <Header onSignOut={onSignOut} />
+      <Header onSignOut={onSignOut} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
       <div className="flex min-h-[calc(100vh-64px)]">
-        <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="flex-1 overflow-auto p-6 lg:p-8">
           <motion.div
             initial={{ opacity: 0, y: 8 }}

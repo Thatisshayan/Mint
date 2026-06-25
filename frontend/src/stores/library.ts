@@ -1,24 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 
-export function useLibrary() {
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
+import { useState } from 'react';
+
+export function useLibrary(page = 1, perPage = 20) {
   return useQuery({
-    queryKey: ['library'],
+    queryKey: ['library', page, perPage],
     queryFn: async () => {
-      const res = await apiClient.get('/library');
-      const data = await res.json();
-      return data.items || [];
+      const res = await apiClient.get(`/library?page=${page}&perPage=${perPage}`);
+      return res.json();
     },
   });
 }
 
-export function useLibrarySearch(query: string) {
+export function useLibrarySearch(query: string, page = 1, perPage = 20) {
   return useQuery({
-    queryKey: ['library', 'search', query],
+    queryKey: ['library', 'search', query, page, perPage],
     queryFn: async () => {
-      const res = await apiClient.get(`/library/search?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      return data.items || [];
+      const res = await apiClient.get(`/library/search?q=${encodeURIComponent(query)}&page=${page}&perPage=${perPage}`);
+      return res.json();
     },
     enabled: query.length > 0,
   });

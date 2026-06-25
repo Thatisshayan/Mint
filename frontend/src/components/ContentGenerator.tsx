@@ -11,6 +11,7 @@ import { saveDraft, loadDraft, clearDraft } from '@/lib/drafts';
 import { useToast } from './Toast';
 import AIStatusBadge from './AIStatusBadge';
 import CostStats from './CostStats';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 type GeneratedItem = {
   id: string;
@@ -100,6 +101,29 @@ export function ContentGenerator() {
       }
     };
   }, [formValues.topic, formValues.type, formValues.tone]);
+
+  useKeyboardShortcuts([
+    {
+      key: 'g',
+      ctrl: true,
+      action: () => {
+        if (!isSubmitting && formValues.topic.trim().length >= 3) {
+          handleSubmit(onSubmit)();
+          addToast({ title: 'Generating...', description: 'Shortcut: Ctrl+G', type: 'info' });
+        }
+      },
+    },
+    {
+      key: 's',
+      ctrl: true,
+      action: () => {
+        if (selectedItem) {
+          handleSaveToLibrary(selectedItem);
+          addToast({ title: 'Saved', description: 'Shortcut: Ctrl+S', type: 'success' });
+        }
+      },
+    },
+  ]);
 
   const onSubmit = async (data: z.infer<typeof generationFormSchema>) => {
     try {

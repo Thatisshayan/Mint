@@ -7,33 +7,61 @@ const updatePostSchema = z.object({
   isFavorite: z.boolean().optional(),
 });
 
-export async function listPosts(userId: string, projectId?: string) {
-  return prisma.generatedPost.findMany({
-    where: {
-      userId,
-      ...(projectId ? { projectId } : {}),
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+export async function listPosts(userId: string, projectId?: string, page = 1, perPage = 20) {
+  const skip = (page - 1) * perPage;
+  const [items, total] = await Promise.all([
+    prisma.generatedPost.findMany({
+      where: {
+        userId,
+        ...(projectId ? { projectId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: perPage,
+    }),
+    prisma.generatedPost.count({
+      where: {
+        userId,
+        ...(projectId ? { projectId } : {}),
+      },
+    }),
+  ]);
+  return { items, total, page, perPage, totalPages: Math.ceil(total / perPage) };
 }
 
-export async function searchPosts(userId: string, query: string) {
+export async function searchPosts(userId: string, query: string, page = 1, perPage = 20) {
   if (!query.trim()) {
-    return listPosts(userId);
+    return listPosts(userId, undefined, page, perPage);
   }
 
+  const skip = (page - 1) * perPage;
   const lowerQuery = query.toLowerCase();
-  return prisma.generatedPost.findMany({
-    where: {
-      userId,
-      OR: [
-        { content: { contains: lowerQuery, mode: 'insensitive' } },
-        { platform: { contains: lowerQuery, mode: 'insensitive' } },
-        { tags: { hasSome: [lowerQuery] } },
-      ],
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  const [items, total] = await Promise.all([
+    prisma.generatedPost.findMany({
+      where: {
+        userId,
+        OR: [
+          { content: { contains: lowerQuery, mode: 'insensitive' } },
+          { platform: { contains: lowerQuery, mode: 'insensitive' } },
+          { tags: { hasSome: [lowerQuery] } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: perPage,
+    }),
+    prisma.generatedPost.count({
+      where: {
+        userId,
+        OR: [
+          { content: { contains: lowerQuery, mode: 'insensitive' } },
+          { platform: { contains: lowerQuery, mode: 'insensitive' } },
+          { tags: { hasSome: [lowerQuery] } },
+        ],
+      },
+    }),
+  ]);
+  return { items, total, page, perPage, totalPages: Math.ceil(total / perPage) };
 }
 
 export async function updatePost(userId: string, id: string, updates: unknown) {

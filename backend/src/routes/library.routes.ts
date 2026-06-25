@@ -5,14 +5,16 @@ export default async function libraryRoutes(fastify: any) {
   fastify.get('/library', { preHandler: authMiddleware }, async (request: any) => {
     const { listPosts } = await import('../services/library.service.js');
     const userId = request.user?.sub || request.user?.email;
-    return { items: await listPosts(userId) };
+    const page = parseInt(request.query.page) || 1;
+    const perPage = parseInt(request.query.perPage) || 20;
+    return await listPosts(userId, undefined, page, perPage);
   });
 
   fastify.get('/library/search', { preHandler: authMiddleware }, async (request: any) => {
-    const { q } = request.query as { q: string };
+    const { q, page, perPage } = request.query as { q: string; page: string; perPage: string };
     const { searchPosts } = await import('../services/library.service.js');
     const userId = request.user?.sub || request.user?.email;
-    return { items: await searchPosts(userId, q || '') };
+    return await searchPosts(userId, q || '', parseInt(page) || 1, parseInt(perPage) || 20);
   });
 
   const updateItemSchema = z.object({

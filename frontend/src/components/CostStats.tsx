@@ -36,7 +36,7 @@ export default function CostStats() {
   return (
     <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
       <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">AI Usage</h3>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <div className="text-[10px] uppercase text-muted-foreground/50">Today</div>
           <div className="text-sm font-bold text-white">{formatCost(data.today.cost)}</div>

@@ -12,20 +12,26 @@ export default function Library() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [newTag, setNewTag] = useState('');
+  const [page, setPage] = useState(1);
+  const perPage = 20;
 
-  const { data: allData, isLoading, error } = useLibrary();
-  const { data: searchData } = useLibrarySearch(searchQuery);
+  const { data: allData, isLoading, error } = useLibrary(page, perPage);
+  const { data: searchData } = useLibrarySearch(searchQuery, page, perPage);
   const deleteMutation = useDeleteLibraryItem();
   const updateMutation = useUpdateLibraryItem();
   const toggleFavorite = useToggleFavorite();
 
   const data = searchQuery ? searchData : allData;
+  const items = data?.items || [];
+  const totalPages = data?.totalPages || 1;
+  const currentPage = data?.page || 1;
+  const totalItems = data?.total || 0;
 
-  const filtered = data?.filter((item: any) => {
+  const filtered = items.filter((item: any) => {
     const matchesStatus = filter === 'all' || item.status === filter;
     const matchesFavorite = !showFavoritesOnly || item.isFavorite;
     return matchesStatus && matchesFavorite;
-  }) || [];
+  });
 
   const handleDelete = (id: string) => {
     if (window.confirm('Delete this item?')) {
@@ -209,6 +215,28 @@ export default function Library() {
           </motion.div>
         ))}
       </motion.div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button
+            onClick={() => setPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage <= 1}
+            className="rounded-lg bg-white/[0.05] px-3 py-1.5 text-sm text-white/80 hover:bg-white/[0.08] disabled:opacity-40"
+          >
+            ← Prev
+          </button>
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages} ({totalItems} total)
+          </span>
+          <button
+            onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage >= totalPages}
+            className="rounded-lg bg-white/[0.05] px-3 py-1.5 text-sm text-white/80 hover:bg-white/[0.08] disabled:opacity-40"
+          >
+            Next →
+          </button>
+        </div>
+      )}
 
       {selectedItem && (
         <div

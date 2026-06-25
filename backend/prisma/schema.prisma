@@ -21,6 +21,8 @@ model User {
   generatedPosts      GeneratedPost[]
   researchReports     ResearchReport[]
   templates           Template[]
+
+  @@index([createdAt])
 }
 
 model ContentProject {
@@ -33,6 +35,10 @@ model ContentProject {
   metadata    String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
 }
 
 model GeneratedPost {
@@ -49,6 +55,13 @@ model GeneratedPost {
   metadata      String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
+  @@index([projectId])
+  @@index([tags])
+  @@index([isFavorite])
 }
 
 model ResearchReport {
@@ -63,6 +76,9 @@ model ResearchReport {
   metadata    String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Template {
@@ -76,4 +92,7 @@ model Template {
   prompt      String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
 }
