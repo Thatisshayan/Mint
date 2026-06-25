@@ -3,6 +3,7 @@ import { getAIProvider } from '../services/ai/index.js';
 import { getPromptWithVariation, recordRating, getPromptStats } from '../services/ai/prompts.js';
 import { logAiUsage, getUsageStats } from '../services/ai/costTracker.js';
 import { moderateContent } from '../services/ai/moderation.js';
+import { getAllCircuitBreakers } from '../lib/circuitBreaker.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const generateSchema = z.object({
@@ -197,6 +198,8 @@ export default async function studioRoutes(fastify: any) {
     else if (hasDeepSeek) activeProvider = 'deepseek';
     else if (hasOpenAI) activeProvider = 'openai';
 
+    const circuitBreakers = getAllCircuitBreakers();
+
     return {
       activeProvider,
       providers: {
@@ -205,6 +208,7 @@ export default async function studioRoutes(fastify: any) {
         ollama: hasOllama,
         comfyui: hasComfyUI,
       },
+      circuitBreakers,
     };
   });
 }

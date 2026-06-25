@@ -1,5 +1,6 @@
 import { Sidebar, Header } from '@/components/layout/AppShell';
 import KeyboardShortcutsModal from '@/components/KeyboardShortcutsModal';
+import OfflineIndicator from '@/components/OfflineIndicator';
 
 interface AppLayoutProps {
   onSignOut: () => void;
@@ -17,6 +18,7 @@ export default function AppLayout({ onSignOut, children }: AppLayoutProps) {
         </main>
       </div>
       <KeyboardShortcutsModal />
+      <OfflineIndicator />
     </div>
   );
 }
