@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { useNavigate } from 'react-router-dom';
+import { downloadAsJSON } from '@/lib/export';
+import { useToast } from '@/components/Toast';
 
 interface DashboardStats {
   totalContent: number;
@@ -25,6 +27,18 @@ interface DashboardStats {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
+
+  const handleExport = async () => {
+    try {
+      const res = await apiClient.get('/export/all');
+      const data = await res.json();
+      downloadAsJSON(data, `mint-backup-${new Date().toISOString().split('T')[0]}.json`);
+      addToast('Data exported successfully', 'success');
+    } catch {
+      addToast('Failed to export data', 'error');
+    }
+  };
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard'],
@@ -164,7 +178,7 @@ export default function Dashboard() {
 
       <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
         <h2 className="mb-3 text-sm font-bold text-white">Quick Actions</h2>
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-5">
           <button
             onClick={() => navigate('/app/studio')}
             className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50"
@@ -188,6 +202,12 @@ export default function Dashboard() {
             className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50"
           >
             Research
+          </button>
+          <button
+            onClick={handleExport}
+            className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50"
+          >
+            Export Data
           </button>
         </div>
       </div>

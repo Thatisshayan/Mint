@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useLibrary, useDeleteLibraryItem, useUpdateLibraryItem, useToggleFavorite, useLibrarySearch } from '@/stores/library';
 import Button from '@/components/ui/Button';
 import Skeleton from '@/components/ui/Skeleton';
@@ -119,10 +120,22 @@ export default function Library() {
         </div>
       )}
 
-      <div className="space-y-3">
+      <motion.div
+        className="space-y-3"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.05 } },
+        }}
+      >
         {filtered.map((item: any) => (
-          <div
+          <motion.div
             key={item.id}
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              visible: { opacity: 1, y: 0 },
+            }}
             onClick={() => setSelectedItem(item)}
             className="cursor-pointer rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]"
           >
@@ -193,9 +206,9 @@ export default function Library() {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {selectedItem && (
         <div

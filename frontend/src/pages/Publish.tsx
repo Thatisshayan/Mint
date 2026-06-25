@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { usePublishQueue, usePublishItem, useDeletePublishItem } from '@/stores/publish';
 import { exportQueueAsJSON } from '@/lib/export';
 import Button from '@/components/ui/Button';
@@ -80,10 +81,22 @@ export default function Publish() {
         </div>
       )}
 
-      <div className="space-y-3">
+      <motion.div
+        className="space-y-3"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.05 } },
+        }}
+      >
         {data?.map((item: any) => (
-          <div
+          <motion.div
             key={item.id}
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              visible: { opacity: 1, y: 0 },
+            }}
             className="rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]"
           >
             <div className="flex items-start justify-between gap-4">
@@ -129,9 +142,9 @@ export default function Publish() {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }
