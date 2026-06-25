@@ -7,13 +7,13 @@ interface SkeletonProps {
   radius?: 'none' | 'sm' | 'md' | 'lg' | 'full';
 }
 
-export function Skeleton({
+export default function Skeleton({
   className = '',
   height = 16,
   width = 100,
   radius = 'sm',
 }: SkeletonProps) {
-  const baseClasses = 'animate-pulse bg-gray-200 rounded';
+  const baseClasses = 'animate-pulse bg-white/10 dark:bg-white/5 rounded';
   const radiusClasses = {
     none: 'rounded-none',
     sm: 'rounded-sm',

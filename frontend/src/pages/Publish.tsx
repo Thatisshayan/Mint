@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { usePublishQueue, usePublishItem, useDeletePublishItem } from '@/stores/publish';
+import { exportQueueAsJSON } from '@/lib/export';
 import Button from '@/components/ui/Button';
 import Skeleton from '@/components/ui/Skeleton';
 
@@ -41,9 +42,19 @@ export default function Publish() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">Publish Queue</h1>
-        <span className="rounded-full bg-white/[0.05] px-3 py-1 text-xs font-semibold text-muted-foreground">
-          {data?.length || 0} items
-        </span>
+        <div className="flex items-center gap-3">
+          {data && data.length > 0 && (
+            <button
+              onClick={() => exportQueueAsJSON(data)}
+              className="rounded-full border border-white/5 bg-white/[0.05] px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-white/[0.08]"
+            >
+              Export JSON
+            </button>
+          )}
+          <span className="rounded-full bg-white/[0.05] px-3 py-1 text-xs font-semibold text-muted-foreground">
+            {data?.length || 0} items
+          </span>
+        </div>
       </div>
 
       {isLoading && (

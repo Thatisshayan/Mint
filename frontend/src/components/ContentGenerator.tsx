@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useGenerateContent } from '@/stores/studio';
 import { useSaveToLibrary } from '@/stores/library';
 import { apiClient } from '@/lib/api/client';
+import { copyAsMarkdown, copyAsJSON, downloadAsTxt, downloadAsMd } from '@/lib/export';
+import { useToast } from './Toast';
 import AIStatusBadge from './AIStatusBadge';
 import CostStats from './CostStats';
 
@@ -37,6 +39,7 @@ const typeMap: Record<string, string> = {
 export function ContentGenerator() {
   const generate = useGenerateContent();
   const saveToLibrary = useSaveToLibrary();
+  const { addToast } = useToast();
   const [selectedItem, setSelectedItem] = useState<GeneratedItem | null>(null);
   const [copyFeedback, setCopyFeedback] = useState('');
   const [generatingVideo, setGeneratingVideo] = useState(false);
@@ -99,8 +102,7 @@ export function ContentGenerator() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    setCopyFeedback('Copied');
-    setTimeout(() => setCopyFeedback(''), 2000);
+    addToast('Copied to clipboard', 'success');
   };
 
   const handleSaveToLibrary = async (item: GeneratedItem) => {
@@ -110,10 +112,9 @@ export function ContentGenerator() {
         platform: item.type,
         status: 'draft',
       });
-      setCopyFeedback('Saved');
-      setTimeout(() => setCopyFeedback(''), 2000);
+      addToast('Saved to library', 'success');
     } catch {
-      // save failed silently
+      addToast('Failed to save to library', 'error');
     }
   };
 
@@ -297,6 +298,40 @@ export function ContentGenerator() {
               >
                 {saveToLibrary.isPending ? 'Saving...' : 'Save to library'}
               </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    copyAsMarkdown(selectedItem.content);
+                    addToast('Copied as Markdown', 'success');
+                  }}
+                  className="flex-1 rounded-xl border border-white/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
+                >
+                  Copy MD
+                </button>
+                <button
+                  onClick={() => {
+                    copyAsJSON({ content: selectedItem.content, type: selectedItem.type, createdAt: selectedItem.createdAt });
+                    addToast('Copied as JSON', 'success');
+                  }}
+                  className="flex-1 rounded-xl border border-white/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
+                >
+                  Copy JSON
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => downloadAsTxt(selectedItem.content)}
+                  className="flex-1 rounded-xl border border-white/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
+                >
+                  Download .txt
+                </button>
+                <button
+                  onClick={() => downloadAsMd(selectedItem.content)}
+                  className="flex-1 rounded-xl border border-white/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
+                >
+                  Download .md
+                </button>
+              </div>
               {selectedItem.type === 'youtube_script' && (
                 <>
                   <button
