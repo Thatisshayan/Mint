@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { getAIProvider, scriptPrompt, captionPrompt, thumbnailPrompt, hookPrompt, scenarioPrompt } from '../services/ai/index.js';
+import { getAIProvider } from '../services/ai/index.js';
+import { getPromptWithVariation, recordRating, getPromptStats } from '../services/ai/prompts.js';
+import { logAiUsage, getUsageStats } from '../services/ai/costTracker.js';
+import { moderateContent } from '../services/ai/moderation.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const generateSchema = z.object({
@@ -14,28 +17,60 @@ export default async function studioRoutes(fastify: any) {
     const body = generateSchema.parse(request.body);
     const provider = getAIProvider();
 
-    const promptFn = {
-      script: scriptPrompt,
-      caption: captionPrompt,
-      thumbnail: thumbnailPrompt,
-      hook: hookPrompt,
-      scenario: scenarioPrompt,
-      full_package: (input: any) => {
-        return [
-          scriptPrompt(input),
-          '---',
-          captionPrompt(input),
-          '---',
-          thumbnailPrompt(input),
-        ].join('\n\n');
-      },
-    }[body.type];
+    const startTime = Date.now();
+
+    let prompt: string;
+    let variationId = 'default';
+
+    if (body.type === 'full_package') {
+      const scriptVar = getPromptWithVariation('script', { topic: body.topic, tone: body.tone });
+      const captionVar = getPromptWithVariation('caption', { topic: body.topic, tone: body.tone });
+      const thumbVar = getPromptWithVariation('thumbnail', { topic: body.topic, tone: body.tone });
+      prompt = [scriptVar.prompt, '---', captionVar.prompt, '---', thumbVar.prompt].join('\n\n');
+      variationId = `full:${scriptVar.variationId},${captionVar.variationId},${thumbVar.variationId}`;
+    } else {
+      const result = getPromptWithVariation(body.type, { topic: body.topic, tone: body.tone });
+      prompt = result.prompt;
+      variationId = result.variationId;
+    }
 
     const result = await provider.generateText({
-      prompt: promptFn({ topic: body.topic, tone: body.tone }),
+      prompt,
       model: body.model,
       temperature: body.type === 'script' || body.type === 'hook' ? 0.7 : 0.4,
       maxTokens: body.type === 'full_package' ? 4096 : 2048,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    const moderation = moderateContent(result.output);
+    if (moderation.flagged) {
+      logAiUsage({
+        provider: result.provider,
+        model: result.model,
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+        contentType: body.type,
+        durationMs,
+        success: false,
+        error: moderation.reason,
+      });
+      return reply.status(400).send({
+        error: 'CONTENT_FLAGGED',
+        message: moderation.reason || 'Content was flagged by moderation',
+      });
+    }
+
+    logAiUsage({
+      provider: result.provider,
+      model: result.model,
+      promptTokens: Math.ceil(prompt.length / 4),
+      completionTokens: Math.ceil(result.output.length / 4),
+      totalTokens: Math.ceil((prompt.length + result.output.length) / 4),
+      contentType: body.type,
+      durationMs,
+      success: true,
     });
 
     return {
@@ -44,14 +79,26 @@ export default async function studioRoutes(fastify: any) {
       content: result.output,
       model: result.model,
       provider: result.provider,
+      variationId,
       createdAt: new Date().toISOString(),
     };
   });
 
   fastify.post('/studio/generate-image', { preHandler: authMiddleware }, async (request: any, reply: any) => {
     const body = z.object({ prompt: z.string().min(1) }).parse(request.body);
+    const startTime = Date.now();
     const { generateComfyUIImage } = await import('../services/ai/comfyui.service.js');
     const result = await generateComfyUIImage({ prompt: body.prompt });
+    logAiUsage({
+      provider: 'comfyui',
+      model: 'stable-diffusion',
+      promptTokens: Math.ceil(body.prompt.length / 4),
+      completionTokens: 0,
+      totalTokens: Math.ceil(body.prompt.length / 4),
+      contentType: 'image',
+      durationMs: Date.now() - startTime,
+      success: true,
+    });
     return result;
   });
 
@@ -117,6 +164,24 @@ export default async function studioRoutes(fastify: any) {
     const userId = request.user?.sub || request.user?.email;
     const { generateIdeas } = await import('../services/studio.service.js');
     return await generateIdeas(userId, body);
+  });
+
+  fastify.post('/studio/rate', { preHandler: authMiddleware }, async (request: any) => {
+    const body = z.object({
+      type: z.string(),
+      variationId: z.string(),
+      rating: z.number().min(1).max(5),
+    }).parse(request.body);
+    recordRating(body.type, body.variationId, body.rating);
+    return { success: true };
+  });
+
+  fastify.get('/studio/prompt-stats', { preHandler: authMiddleware }, async () => {
+    return getPromptStats();
+  });
+
+  fastify.get('/studio/cost-stats', { preHandler: authMiddleware }, async () => {
+    return getUsageStats();
   });
 
   fastify.get('/studio/ai-status', { preHandler: authMiddleware }, async () => {
