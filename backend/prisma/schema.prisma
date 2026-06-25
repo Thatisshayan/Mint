@@ -20,6 +20,7 @@ model User {
   contentProjects     ContentProject[]
   generatedPosts      GeneratedPost[]
   researchReports     ResearchReport[]
+  templates           Template[]
 }
 
 model ContentProject {
@@ -42,6 +43,8 @@ model GeneratedPost {
   platform      String
   content       String
   status        String    @default("draft")
+  tags          String[]
+  isFavorite    Boolean   @default(false)
   scheduledAt   DateTime?
   metadata      String?
   createdAt     DateTime  @default(now())
@@ -58,6 +61,19 @@ model ResearchReport {
   summary     String
   citations   String?
   metadata    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Template {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  topic       String
+  type        String
+  tone        String
+  prompt      String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }

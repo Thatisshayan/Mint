@@ -87,6 +87,7 @@ export async function buildApp() {
   await app.register((await import('./routes/studio.routes.js')).default, { prefix: '/api' });
   await app.register((await import('./routes/library.routes.js')).default, { prefix: '/api' });
   await app.register((await import('./routes/publish.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/template.routes.js')).default, { prefix: '/api' });
 
   // Serve frontend static files in production (after API routes to avoid conflicts)
   const __dirname = path.dirname(fileURLToPath(import.meta.url));

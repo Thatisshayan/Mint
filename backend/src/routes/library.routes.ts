@@ -8,8 +8,17 @@ export default async function libraryRoutes(fastify: any) {
     return { items: await listPosts(userId) };
   });
 
+  fastify.get('/library/search', { preHandler: authMiddleware }, async (request: any) => {
+    const { q } = request.query as { q: string };
+    const { searchPosts } = await import('../services/library.service.js');
+    const userId = request.user?.sub || request.user?.email;
+    return { items: await searchPosts(userId, q || '') };
+  });
+
   const updateItemSchema = z.object({
-    status: z.enum(['draft', 'published', 'archived']),
+    status: z.enum(['draft', 'published', 'archived']).optional(),
+    tags: z.array(z.string()).optional(),
+    isFavorite: z.boolean().optional(),
   });
 
   fastify.patch('/library/:id', { preHandler: authMiddleware }, async (request: any, reply: any) => {
@@ -20,11 +29,19 @@ export default async function libraryRoutes(fastify: any) {
     return await updatePost(userId, id, body);
   });
 
+  fastify.post('/library/:id/toggle-favorite', { preHandler: authMiddleware }, async (request: any) => {
+    const { id } = request.params as { id: string };
+    const { toggleFavorite } = await import('../services/library.service.js');
+    const userId = request.user?.sub || request.user?.email;
+    return await toggleFavorite(userId, id);
+  });
+
   const createPostSchema = z.object({
     content: z.string().min(1, 'Content is required'),
     platform: z.string().optional().default('generic'),
     status: z.string().optional().default('draft'),
     projectId: z.string().optional(),
+    tags: z.array(z.string()).optional(),
   });
 
   fastify.post('/library', { preHandler: authMiddleware }, async (request: any) => {
