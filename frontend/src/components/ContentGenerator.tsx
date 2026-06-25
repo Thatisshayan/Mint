@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -7,6 +7,7 @@ import { useGenerateContent } from '@/stores/studio';
 import { useSaveToLibrary } from '@/stores/library';
 import { apiClient } from '@/lib/api/client';
 import { copyAsMarkdown, copyAsJSON, downloadAsTxt, downloadAsMd } from '@/lib/export';
+import { saveDraft, loadDraft, clearDraft } from '@/lib/drafts';
 import { useToast } from './Toast';
 import AIStatusBadge from './AIStatusBadge';
 import CostStats from './CostStats';
@@ -47,11 +48,16 @@ export function ContentGenerator() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [userRating, setUserRating] = useState<number | null>(null);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const qc = useQueryClient();
+
+  const userId = 'default-user';
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<z.infer<typeof generationFormSchema>>({
     resolver: zodResolver(generationFormSchema),
@@ -62,6 +68,39 @@ export function ContentGenerator() {
     },
   });
 
+  const formValues = watch();
+
+  useEffect(() => {
+    const draft = loadDraft(userId);
+    if (draft) {
+      setValue('topic', draft.topic);
+      setValue('type', draft.type as any);
+      setValue('tone', draft.tone as any);
+      addToast('Draft restored', 'info');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+    }
+    autoSaveTimer.current = setTimeout(() => {
+      if (formValues.topic && formValues.topic.length >= 3) {
+        saveDraft(userId, {
+          topic: formValues.topic,
+          type: formValues.type,
+          tone: formValues.tone,
+        });
+      }
+    }, 5000);
+
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+    };
+  }, [formValues.topic, formValues.type, formValues.tone]);
+
   const onSubmit = async (data: z.infer<typeof generationFormSchema>) => {
     try {
       setUserRating(null);
@@ -70,6 +109,8 @@ export function ContentGenerator() {
         topic: data.topic.trim(),
         tone: data.tone,
       });
+
+      clearDraft(userId);
 
       const item: GeneratedItem = {
         id: result.id || crypto.randomUUID(),

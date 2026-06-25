@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const NAV = [
+  { label: 'Dashboard', to: '/app/dashboard' },
   { label: 'Projects', to: '/app/projects' },
   { label: 'Studio', to: '/app/studio' },
   { label: 'Research', to: '/app/research' },

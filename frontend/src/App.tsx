@@ -8,6 +8,7 @@ import Studio from '@/pages/Studio';
 import Library from '@/pages/Library';
 import Publish from '@/pages/Publish';
 import Research from '@/pages/Research';
+import Dashboard from '@/pages/Dashboard';
 import NotFound from '@/pages/NotFound';
 import AppLayout from '@/components/layout/AppLayout';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -30,7 +31,8 @@ export default function App() {
                 <AppLayout onSignOut={signOut}>
                   <ErrorBoundary>
                     <Routes>
-                      <Route index element={<Projects />} />
+                      <Route index element={<Dashboard />} />
+                      <Route path="dashboard" element={<Dashboard />} />
                       <Route path="projects" element={<Projects />} />
                       <Route path="studio" element={<Studio />} />
                       <Route path="research" element={<Research />} />
