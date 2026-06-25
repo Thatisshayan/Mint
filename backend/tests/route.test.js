@@ -4,17 +4,18 @@
  * @description Test suite for MINT API routes
  */
 
-import { test, expect } from 'vitest';
+import { test, expect, vi } from 'vitest';
 
 // Mock routes
 const mockRoutes = {
-  authMagicLink: jest.fn(),
-  getProject: jest.fn(),
+  authMagicLink: vi.fn(),
+  getProject: vi.fn(),
 };
 
 // Test cases
 
 test('Auth magic link route', () => {
+  mockRoutes.authMagicLink({ email: 'test@example.com' });
   expect(mockRoutes.authMagicLink).toHaveBeenCalledWith({ email: 'test@example.com' });
 });
 

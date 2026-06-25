@@ -1,3 +1,5 @@
-export async function getCurrentUser(request: any) {
-  return request.user || null;
+import { FastifyRequest } from 'fastify';
+
+export function getCurrentUser(request: FastifyRequest): unknown | null {
+  return request.user ?? null;
 }

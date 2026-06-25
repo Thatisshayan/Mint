@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware } from '../middleware/auth.js';
 
-export default async function libraryRoutes(fastify: any) {
-  fastify.get('/library', { preHandler: authMiddleware }, async (request: any) => {
+export default async function libraryRoutes(fastify: FastifyInstance) {
+  fastify.get('/library', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { listPosts } = await import('../services/library.service.js');
     const userId = request.user?.sub || request.user?.email;
     const page = parseInt(request.query.page) || 1;
@@ -10,7 +11,7 @@ export default async function libraryRoutes(fastify: any) {
     return await listPosts(userId, undefined, page, perPage);
   });
 
-  fastify.get('/library/search', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.get('/library/search', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { q, page, perPage } = request.query as { q: string; page: string; perPage: string };
     const { searchPosts } = await import('../services/library.service.js');
     const userId = request.user?.sub || request.user?.email;
@@ -23,7 +24,7 @@ export default async function libraryRoutes(fastify: any) {
     isFavorite: z.boolean().optional(),
   });
 
-  fastify.patch('/library/:id', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+  fastify.patch('/library/:id', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const body = updateItemSchema.parse(request.body);
     const { updatePost } = await import('../services/library.service.js');
@@ -31,7 +32,7 @@ export default async function libraryRoutes(fastify: any) {
     return await updatePost(userId, id, body);
   });
 
-  fastify.post('/library/:id/toggle-favorite', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.post('/library/:id/toggle-favorite', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { id } = request.params as { id: string };
     const { toggleFavorite } = await import('../services/library.service.js');
     const userId = request.user?.sub || request.user?.email;
@@ -46,14 +47,14 @@ export default async function libraryRoutes(fastify: any) {
     tags: z.array(z.string()).optional(),
   });
 
-  fastify.post('/library', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.post('/library', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const body = createPostSchema.parse(request.body);
     const { createPost } = await import('../services/library.service.js');
     const userId = request.user?.sub || request.user?.email;
     return await createPost(userId, body);
   });
 
-  fastify.get('/library/:id', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.get('/library/:id', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { id } = request.params as { id: string };
     const { getPost } = await import('../services/library.service.js');
     const userId = request.user?.sub || request.user?.email;
@@ -64,7 +65,7 @@ export default async function libraryRoutes(fastify: any) {
     return post;
   });
 
-  fastify.delete('/library/:id', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+  fastify.delete('/library/:id', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const { deletePost } = await import('../services/library.service.js');
     const userId = request.user?.sub || request.user?.email;

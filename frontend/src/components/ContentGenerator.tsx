@@ -3,15 +3,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useGenerateContent } from '@/stores/studio';
+import { useGenerateContent, useGenerateImage } from '@/stores/studio';
 import { useSaveToLibrary } from '@/stores/library';
 import { apiClient } from '@/lib/api/client';
 import { copyAsMarkdown, copyAsJSON, downloadAsTxt, downloadAsMd } from '@/lib/export';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/drafts';
-import { useToast } from './Toast';
+import { useToast } from '@/context/toastContext';
 import AIStatusBadge from './AIStatusBadge';
 import CostStats from './CostStats';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useSession } from '@/hooks/useSession';
 
 type GeneratedItem = {
   id: string;
@@ -41,18 +42,25 @@ const typeMap: Record<string, string> = {
 export function ContentGenerator() {
   const generate = useGenerateContent();
   const saveToLibrary = useSaveToLibrary();
+  const generateImageMutation = useGenerateImage();
   const { addToast } = useToast();
   const [selectedItem, setSelectedItem] = useState<GeneratedItem | null>(null);
   const [copyFeedback, setCopyFeedback] = useState('');
-  const [generatingVideo, setGeneratingVideo] = useState(false);
-  const [generatingAudio, setGeneratingAudio] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [userRating, setUserRating] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  [editedContent, setEditedContent] = useState('');
+  [generatingVideo, setGeneratingVideo] = useState(false);
+  [generatingAudio, setGeneratingAudio] = useState(false);
+  [videoUrl, setVideoUrl] = useState<string | null>(null);
+  [audioUrl, setAudioUrl] = useState<string | null>(null);
+  [generatingImage, setGeneratingImage] = useState(false);
+  [imageUrl, setImageUrl] = useState<string | null>(null);
+  [imageError, setImageError] = useState<string | null>(null);
+  [userRating, setUserRating] = useState<number | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const qc = useQueryClient();
 
-  const userId = 'default-user';
+  const { session } = useSession();
+    const userId = session?.user?.id || 'anonymous';
 
   const {
     register,
@@ -72,14 +80,14 @@ export function ContentGenerator() {
   const formValues = watch();
 
   useEffect(() => {
-    const draft = loadDraft(userId);
-    if (draft) {
-      setValue('topic', draft.topic);
-      setValue('type', draft.type as any);
-      setValue('tone', draft.tone as any);
-      addToast('Draft restored', 'info');
-    }
-  }, []);
+      const draft = loadDraft(userId);
+      if (draft) {
+        setValue('topic', draft.topic);
+        setValue('type', draft.type as typeof formValues['type']);
+        setValue('tone', draft.tone as typeof formValues['tone']);
+        addToast('Draft restored', 'info');
+      }
+    }, [addToast, setValue, userId]);
 
   useEffect(() => {
     if (autoSaveTimer.current) {
@@ -100,7 +108,7 @@ export function ContentGenerator() {
         clearTimeout(autoSaveTimer.current);
       }
     };
-  }, [formValues.topic, formValues.type, formValues.tone]);
+  }, [formValues.topic, formValues.type, formValues.tone, userId]);
 
   useKeyboardShortcuts([
     {
@@ -213,6 +221,21 @@ export function ContentGenerator() {
     }
   }, []);
 
+  const generateImage = useCallback(async (prompt: string) => {
+    setGeneratingImage(true);
+    setImageUrl(null);
+    setImageError(null);
+    try {
+      const result = await generateImageMutation.mutateAsync(prompt);
+      if (result.url) setImageUrl(result.url);
+      else if (result.message) setImageError(result.message);
+    } catch (err) {
+      setImageError((err as Error)?.message || 'Image generation failed');
+    } finally {
+      setGeneratingImage(false);
+    }
+  }, [generateImageMutation]);
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
       <div className="flex items-center justify-between">
@@ -307,17 +330,51 @@ export function ContentGenerator() {
           <div className="lg:col-span-3 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Generated Result</h2>
-              <button
-                onClick={() => copyToClipboard(selectedItem.content)}
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10"
-              >
-                {copyFeedback || 'Copy'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (isEditing) {
+                      setSelectedItem({ ...selectedItem, content: editedContent });
+                      setIsEditing(false);
+                      addToast('Content updated', 'success');
+                    } else {
+                      setEditedContent(selectedItem.content);
+                      setIsEditing(true);
+                    }
+                  }}
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10"
+                >
+                  {isEditing ? 'Save' : 'Edit'}
+                </button>
+                {isEditing && (
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button
+                  onClick={() => copyToClipboard(selectedItem.content)}
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10"
+                >
+                  {copyFeedback || 'Copy'}
+                </button>
+              </div>
             </div>
             <div className="rounded-3xl border border-white/5 bg-white/[0.02] p-6">
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed text-white/90">
-                {selectedItem.content}
-              </pre>
+              {isEditing ? (
+                <textarea
+                  value={editedContent}
+                  onChange={(e) => setEditedContent(e.target.value)}
+                  className="h-64 w-full resize-y rounded-xl bg-transparent text-sm leading-relaxed text-white/90 focus:outline-none"
+                  spellCheck={false}
+                />
+              ) : (
+                <pre className="whitespace-pre-wrap text-sm leading-relaxed text-white/90">
+                  {selectedItem.content}
+                </pre>
+              )}
             </div>
             {selectedItem.provider && (
               <div className="text-[10px] text-muted-foreground/50">
@@ -359,7 +416,7 @@ export function ContentGenerator() {
               <button
                 onClick={() => handleSaveToLibrary(selectedItem)}
                 disabled={saveToLibrary.isPending}
-                className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50 disabled:opacity-50"
+                className="rounded-2xl border border-write/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50 disabled:opacity-50"
               >
                 {saveToLibrary.isPending ? 'Saving...' : 'Save to library'}
               </button>
@@ -369,7 +426,7 @@ export function ContentGenerator() {
                     copyAsMarkdown(selectedItem.content);
                     addToast('Copied as Markdown', 'success');
                   }}
-                  className="flex-1 rounded-xl border border-white/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
+                  className="flex-1 rounded-xl border border-write/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
                 >
                   Copy MD
                 </button>
@@ -378,31 +435,47 @@ export function ContentGenerator() {
                     copyAsJSON({ content: selectedItem.content, type: selectedItem.type, createdAt: selectedItem.createdAt });
                     addToast('Copied as JSON', 'success');
                   }}
-                  className="flex-1 rounded-xl border border-white/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
+                  className="flex-1 rounded-xl border border-write/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
                 >
                   Copy JSON
                 </button>
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => downloadAsTxt(selectedItem.content)}
-                  className="flex-1 rounded-xl border border-white/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
+                  onClick={() => {
+                    downloadAsTxt(selectedItem.content)
+                  }}
+                  className="flet-1 rounded-xl border border-write/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
                 >
                   Download .txt
                 </button>
                 <button
-                  onClick={() => downloadAsMd(selectedItem.content)}
-                  className="flex-1 rounded-xl border border-white/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
+                  onClick={() => {
+                    downloadAsMd(selectedItem.content)
+                  }}
+                  className="flet-1 rounded-xl border border-write/5 bg-white/[0.02] p-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-white/[0.04]"
                 >
                   Download .md
                 </button>
               </div>
+              <button
+                onClick={() => generateImage(selectedItem.content)}
+                disabled={generatingImage}
+                className="rounded-2xl border border-write/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50 disabled:opacity-50"
+              >
+                {generatingImage ? 'Generating image...' : 'Generate Image'}
+              </button>
+              {imageError && (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-300">
+                  {imageError}
+                </div>
+              )}
               {selectedItem.type === 'youtube_script' && (
                 <>
                   <button
                     onClick={() => generateVoiceover(selectedItem.content)}
                     disabled={generatingAudio}
-                    className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50 disabled:opacity-50"
+                    className="rounded-2xl border border-write/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50 disabled:opacity-50"
                   >
                     {generatingAudio ? 'Generating...' : 'Generate Voiceover'}
                   </button>
@@ -417,7 +490,7 @@ export function ContentGenerator() {
               )}
             </div>
             {audioUrl && (
-              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+              <div className="rounded-2xl border border-write/5 bg-white/[0.02] p-4">
                 <audio controls className="w-full" src={audioUrl}>
                   Your browser does not support audio.
                 </audio>
@@ -429,6 +502,12 @@ export function ContentGenerator() {
                   Your browser does not support video.
                 </video>
                 <p className="mt-2 text-xs text-mint-400">Video generated — plays below</p>
+              </div>
+            )}
+            {imageUrl && (
+              <div className="rounded-2xl border border-write/5 bg-white/[0.02] p-4">
+                <img src={imageUrl} alt="Generated" className="w-full rounded-xl" />
+                <p className="mt-2 text-xs text-muted-foreground">Image generated via ComfyUI</p>
               </div>
             )}
           </div>
@@ -454,7 +533,7 @@ export function ContentGenerator() {
             <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Step 3</div>
             <div className="mt-2 text-sm text-white">Add voiceover or generate a short video.</div>
           </div>
-          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+          <div className="rounded-2xl border border-write/5 bg-white/[0.02] p-5">
             <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Step 4</div>
             <div className="mt-2 text-sm text-white">Save to library, copy, or schedule publish.</div>
           </div>

@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware } from '../middleware/auth.js';
 
-export default async function exportRoutes(fastify: any) {
-  fastify.get('/export/all', { preHandler: authMiddleware }, async (request: any) => {
+export default async function exportRoutes(fastify: FastifyInstance) {
+  fastify.get('/export/all', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const userId = request.user?.sub || request.user?.email;
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
@@ -28,21 +29,14 @@ export default async function exportRoutes(fastify: any) {
     };
   });
 
-  fastify.post('/export/restore', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.post('/export/restore', { preHandler: authMiddleware }, async (request: FastifyRequest<{ Body: z.infer<typeof restoreSchema> }>, reply: FastifyReply) => {
     const userId = request.user?.sub || request.user?.email;
-    const body = z.object({
-      data: z.object({
-        projects: z.array(z.any()).optional(),
-        posts: z.array(z.any()).optional(),
-        reports: z.array(z.any()).optional(),
-        templates: z.array(z.any()).optional(),
-      }),
-    }).parse(request.body);
+    const body = restoreSchema.parse(request.body);
 
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
 
-    let restored = { projects: 0, posts: 0, reports: 0, templates: 0 };
+    const restored = { projects: 0, posts: 0, reports: 0, templates: 0 };
 
     if (body.data.projects) {
       for (const project of body.data.projects) {
@@ -97,3 +91,12 @@ export default async function exportRoutes(fastify: any) {
     return { success: true, restored };
   });
 }
+
+const restoreSchema = z.object({
+  data: z.object({
+    projects: z.array(z.any()).optional(),
+    posts: z.array(z.any()).optional(),
+    reports: z.array(z.any()).optional(),
+    templates: z.array(z.any()).optional(),
+  }),
+});

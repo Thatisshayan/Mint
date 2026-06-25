@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getAIProvider } from '../services/ai/index.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -14,14 +15,14 @@ const researchPrompt = (query: string) =>
   `- Content opportunities\n` +
   `- Target audience insights\n\nTopic: "${query}"`;
 
-export default async function researchRoutes(fastify: any) {
-  fastify.get('/research', { preHandler: authMiddleware }, async (request: any) => {
+export default async function researchRoutes(fastify: FastifyInstance) {
+  fastify.get('/research', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { listResearch } = await import('../services/research.service.js');
     const userId = request.user?.sub || request.user?.email;
     return { reports: await listResearch(userId) };
   });
 
-  fastify.post('/research', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.post('/research', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const body = createResearchSchema.parse(request.body);
     const provider = getAIProvider();
     const result = await provider.generateText({
@@ -43,7 +44,7 @@ export default async function researchRoutes(fastify: any) {
     };
   });
 
-  fastify.get('/research/:id', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.get('/research/:id', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { id } = request.params as { id: string };
     const { getResearch } = await import('../services/research.service.js');
     const userId = request.user?.sub || request.user?.email;
@@ -54,7 +55,7 @@ export default async function researchRoutes(fastify: any) {
     return report;
   });
 
-  fastify.delete('/research/:id', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+  fastify.delete('/research/:id', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const { deleteResearch } = await import('../services/research.service.js');
     const userId = request.user?.sub || request.user?.email;

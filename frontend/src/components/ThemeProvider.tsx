@@ -1,22 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-
-type Theme = 'light' | 'dark';
-
-interface ThemeContextValue {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-  toggle: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
-
-const STORAGE_KEY = 'mint-theme-preference';
-
-export function useTheme() {
-  const value = useContext(ThemeContext);
-  if (!value) throw new Error('useTheme must be used within ThemeProvider');
-  return value;
-}
+import { useState, useEffect } from 'react';
+import { ThemeContext } from '@/context/themeContext';
+import { STORAGE_KEY } from '@/context/themeContext';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {

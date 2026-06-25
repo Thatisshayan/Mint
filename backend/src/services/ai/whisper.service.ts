@@ -29,8 +29,12 @@ export async function transcribeAudio({ audioBase64, language = 'en' }: Transcri
       timeout: 120_000,
     });
 
-    try { await unlink(inputPath); } catch {}
-    try { await rmdir(tmpDir, { recursive: true }); } catch {}
+try { await unlink(inputPath); } catch (error) {
+       // Ignore cleanup errors
+     }
+     try { await rmdir(tmpDir, { recursive: true }); } catch (error) {
+       // Ignore cleanup errors
+     }
 
     const result = JSON.parse(stdout) as { text: string; segments?: Array<{ start: number; end: number; text: string }> };
     return { text: result.text || '', segments: result.segments, language };

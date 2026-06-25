@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware } from '../middleware/auth.js';
 
 const createProjectSchema = z.object({
@@ -6,14 +7,14 @@ const createProjectSchema = z.object({
   description: z.string().max(2000, 'Description too long').optional(),
 });
 
-export default async function projectRoutes(fastify: any) {
-  fastify.get('/projects', { preHandler: authMiddleware }, async (request: any) => {
+export default async function projectRoutes(fastify: FastifyInstance) {
+  fastify.get('/projects', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { listProjects } = await import('../services/project.service.js');
     const userId = request.user?.sub || request.user?.email;
     return { projects: await listProjects(userId) };
   });
 
-  fastify.post('/projects', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.post('/projects', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const body = createProjectSchema.parse(request.body);
     const { createProject } = await import('../services/project.service.js');
     const userId = request.user?.sub || request.user?.email;
@@ -25,7 +26,7 @@ export default async function projectRoutes(fastify: any) {
     description: z.string().max(2000).optional(),
   });
 
-  fastify.get('/projects/:id', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.get('/projects/:id', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { id } = request.params as { id: string };
     const { getProject } = await import('../services/project.service.js');
     const userId = request.user?.sub || request.user?.email;
@@ -36,7 +37,7 @@ export default async function projectRoutes(fastify: any) {
     return project;
   });
 
-  fastify.patch('/projects/:id', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.patch('/projects/:id', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const body = updateProjectSchema.parse(request.body);
     const { updateProject } = await import('../services/project.service.js');
@@ -44,7 +45,7 @@ export default async function projectRoutes(fastify: any) {
     return await updateProject(userId, id, body);
   });
 
-  fastify.delete('/projects/:id', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+  fastify.delete('/projects/:id', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const { deleteProject } = await import('../services/project.service.js');
     const userId = request.user?.sub || request.user?.email;

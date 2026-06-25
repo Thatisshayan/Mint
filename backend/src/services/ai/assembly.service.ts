@@ -59,13 +59,19 @@ export async function assembleVideo({ clips, audioUrl, outputFormat = 'mp4' }: A
     const buffer = await readFile(outputPath);
     const base64 = buffer.toString('base64');
 
-    // Cleanup
-    try { await unlink(outputPath); } catch {}
-    try { await rmdir(tmpDir); } catch {}
+// Cleanup
+     try { await unlink(outputPath); } catch (error) {
+       // Ignore cleanup errors
+     }
+     try { await rmdir(tmpDir); } catch (error) {
+       // Ignore cleanup errors
+     }
 
     return { url: `data:video/${outputFormat};base64,${base64}`, format: outputFormat };
-  } catch (err) {
-    try { await rmdir(tmpDir, { recursive: true }); } catch {}
-    throw new Error(`Video assembly failed: ${(err as Error).message}`);
-  }
+} catch (err) {
+       try { await rmdir(tmpDir, { recursive: true }); } catch (error) {
+         // Ignore cleanup errors
+       }
+       throw new Error(`Video assembly failed: ${(err as Error).message}`);
+     }
 }

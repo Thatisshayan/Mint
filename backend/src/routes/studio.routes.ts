@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getAIProvider } from '../services/ai/index.js';
 import { getPromptWithVariation, recordRating, getPromptStats } from '../services/ai/prompts.js';
 import { logAiUsage, getUsageStats } from '../services/ai/costTracker.js';
@@ -13,8 +14,8 @@ const generateSchema = z.object({
   model: z.string().max(100).optional(),
 });
 
-export default async function studioRoutes(fastify: any) {
-  fastify.post('/studio/generate', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+export default async function studioRoutes(fastify: FastifyInstance) {
+  fastify.post('/studio/generate', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = generateSchema.parse(request.body);
     const provider = getAIProvider();
 
@@ -85,7 +86,7 @@ export default async function studioRoutes(fastify: any) {
     };
   });
 
-  fastify.post('/studio/generate-image', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+  fastify.post('/studio/generate-image', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = z.object({ prompt: z.string().min(1) }).parse(request.body);
     const startTime = Date.now();
     const { generateComfyUIImage } = await import('../services/ai/comfyui.service.js');
@@ -103,13 +104,13 @@ export default async function studioRoutes(fastify: any) {
     return result;
   });
 
-  fastify.post('/studio/generate-voice', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+  fastify.post('/studio/generate-voice', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = z.object({ text: z.string().min(1).max(5000), voice: z.string().optional() }).parse(request.body);
     const { generateSpeech } = await import('../services/ai/tts.service.js');
     return await generateSpeech({ text: body.text, voice: body.voice });
   });
 
-  fastify.post('/studio/generate-video', { preHandler: authMiddleware }, async (request: any, reply: any) => {
+  fastify.post('/studio/generate-video', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = z.object({
       script: z.string().min(1).max(10000),
       title: z.string().max(200).optional(),
@@ -120,7 +121,7 @@ export default async function studioRoutes(fastify: any) {
     return await generateVideo({ script: body.script, title: body.title, platform: body.platform, voice: body.voice });
   });
 
-  fastify.get('/studio/generate-video/:taskId', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.get('/studio/generate-video/:taskId', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { taskId } = request.params as { taskId: string };
     const mptUrl = process.env.MONEY_PRINTER_URL || 'http://localhost:8501';
     const res = await fetch(`${mptUrl}/api/v1/video/status/${taskId}`, { signal: AbortSignal.timeout(10_000) });
@@ -128,13 +129,13 @@ export default async function studioRoutes(fastify: any) {
     return await res.json();
   });
 
-  fastify.post('/studio/search-stock', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.post('/studio/search-stock', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const body = z.object({ query: z.string().min(1) }).parse(request.body);
     const { searchStockVideos } = await import('../services/ai/pexels.service.js');
     return await searchStockVideos({ query: body.query });
   });
 
-  fastify.post('/studio/assemble-video', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.post('/studio/assemble-video', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const body = z.object({
       clips: z.array(z.object({
         type: z.enum(['video', 'image', 'text']),
@@ -147,7 +148,7 @@ export default async function studioRoutes(fastify: any) {
     return await assembleVideo({ clips: body.clips, audioUrl: body.audioUrl });
   });
 
-  fastify.post('/studio/transcribe', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.post('/studio/transcribe', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const body = z.object({ audioBase64: z.string().min(1) }).parse(request.body);
     const { transcribeAudio } = await import('../services/ai/whisper.service.js');
     return await transcribeAudio({ audioBase64: body.audioBase64 });
@@ -160,14 +161,14 @@ export default async function studioRoutes(fastify: any) {
     count: z.number().min(1).max(10).optional(),
   });
 
-  fastify.post('/studio/generate-ideas', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.post('/studio/generate-ideas', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const body = generateIdeasSchema.parse(request.body);
     const userId = request.user?.sub || request.user?.email;
     const { generateIdeas } = await import('../services/studio.service.js');
     return await generateIdeas(userId, body);
   });
 
-  fastify.post('/studio/rate', { preHandler: authMiddleware }, async (request: any) => {
+  fastify.post('/studio/rate', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const body = z.object({
       type: z.string(),
       variationId: z.string(),

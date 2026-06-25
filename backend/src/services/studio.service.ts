@@ -39,7 +39,7 @@ export async function generateIdeas(userId: string, input: unknown) {
     .split('\n')
     .filter((line: string) => line.trim().length > 0)
     .map((line: string, idx: number) => {
-      const cleaned = line.replace(/^\d+[\.\)]\s*/, '').trim();
+      const cleaned = line.replace(/^\d+[.).]\s*/, '').trim();
       const titleMatch = cleaned.match(/Title:\s*(.+?)(?:\s*\||$)/i);
       const briefMatch = cleaned.match(/Brief:\s*(.+)/i);
       return {
@@ -131,10 +131,12 @@ export async function generateWithOllama(input: { prompt: string; system?: strin
     } catch {
       return { output: text, model: data.model, done: true };
     }
-  } catch (err) {
-    if ((err as any)?.name === 'AbortError') throw new Error(`Ollama generation aborted after 30s`);
-    throw err;
-  } finally {
+} catch (err) {
+      if (typeof err === 'object' && err !== null && 'name' in err && err.name === 'AbortError') {
+        throw new Error(`Ollama generation aborted after 30s`);
+      }
+      throw err;
+    } finally {
     clearTimeout(timeout);
   }
 }

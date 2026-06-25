@@ -3,7 +3,7 @@ export function copyAsMarkdown(text: string): void {
 }
 
 export function copyAsPlainText(text: string): void {
-  const plain = text.replace(/[#*_`~\[\]]/g, '');
+  const plain = text.replace(/[\][#*_*~`]/g, '');
   navigator.clipboard.writeText(plain);
 }
 

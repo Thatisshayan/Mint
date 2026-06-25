@@ -4,12 +4,12 @@
  * @description Test suite for MINT backend services
  */
 
-import { test, expect } from 'vitest';
+import { test, expect, vi } from 'vitest';
 
 // Mock services
 const mockServices = {
-  createUser: jest.fn(),
-  verifyMagicLink: jest.fn(),
+  createUser: vi.fn(),
+  verifyMagicLink: vi.fn(),
 };
 
 // Test cases

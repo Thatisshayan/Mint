@@ -17,6 +17,14 @@ const STATUS_COLOR: Record<string, string> = {
   published: 'bg-blue-500/10 text-blue-400',
 };
 
+type PublishItem = {
+  id: string;
+  content: string;
+  platform: string;
+  status: string;
+  createdAt: string;
+};
+
 export default function Publish() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { data, isLoading, error } = usePublishQueue();
@@ -72,7 +80,7 @@ export default function Publish() {
         </div>
       )}
 
-      {!isLoading && !error && data?.length === 0 && (
+      {!isLoading && !error && (data?.length === 0 || !data) && (
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-8 text-center">
           <p className="text-muted-foreground">Your publish queue is empty.</p>
           <p className="mt-1 text-sm text-muted-foreground/70">
@@ -90,7 +98,7 @@ export default function Publish() {
           visible: { transition: { staggerChildren: 0.05 } },
         }}
       >
-        {data?.map((item: any) => (
+        {data?.map((item: PublishItem) => (
           <motion.div
             key={item.id}
             variants={{

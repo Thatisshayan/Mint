@@ -1,4 +1,4 @@
-import { writeFileSync, appendFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, appendFileSync, existsSync, mkdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 export interface AiUsageEntry {
@@ -76,7 +76,7 @@ export function getUsageStats(): {
     const logPath = getLogPath();
     if (!existsSync(logPath)) return stats;
 
-    const content = require('fs').readFileSync(logPath, 'utf-8');
+    const content = readFileSync(logPath, 'utf-8');
     const lines = content.trim().split('\n').filter(Boolean);
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());

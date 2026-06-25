@@ -7,6 +7,7 @@ import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
 import helmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
+import { ZodError } from 'zod';
 import { config } from './config.js';
 import { connectDb } from './services/db.js';
 import { AppError, ValidationError } from './lib/errors.js';
@@ -29,7 +30,7 @@ export async function buildApp() {
   await app.register(jwt, { secret: config.jwtSecret });
 
   // Security headers via Helmet
-  await app.register(helmet as any, { contentSecurityPolicy: false });
+  await app.register(helmet, { contentSecurityPolicy: false });
 
   // Rate limiting: stricter for auth endpoints, standard for everything else
   await app.register(rateLimit, {
@@ -63,7 +64,7 @@ export async function buildApp() {
 
     // Zod validation errors
     if (err.name === 'ZodError') {
-      const validationError = new ValidationError(err as any);
+      const validationError = new ValidationError(err as ZodError);
       reply.status(validationError.statusCode).send({
         error: validationError.code,
         message: validationError.message,

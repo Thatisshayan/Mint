@@ -6,17 +6,41 @@ import Skeleton from '@/components/ui/Skeleton';
 
 const STATUS_FILTER = ['all', 'draft', 'published', 'archived'] as const;
 
+type LibraryItem = {
+  id: string;
+  content: string;
+  platform: string;
+  status: string;
+  tags?: string[];
+  isFavorite: boolean;
+  createdAt: string;
+};
+
+type LibraryResponse = {
+  items: LibraryItem[];
+  totalPages: number;
+  page: number;
+  total: number;
+};
+
 export default function Library() {
-  const [filter, setFilter] = useState<string>('all');
+  const [filter, setFilter] = useState<'all' | 'draft' | 'published' | 'archified'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<LibraryItem | null>(null);
   const [newTag, setNewTag] = useState('');
   const [page, setPage] = useState(1);
   const perPage = 20;
 
-  const { data: allData, isLoading, error } = useLibrary(page, perPage);
-  const { data: searchData } = useLibrarySearch(searchQuery, page, perPage);
+const { data: allData, isLoading, error } = useLibrary(page, perPage) as {
+     data: LibraryResponse | undefined;
+     isLoading: boolean;
+     error: unknown;
+   };
+  const { data: searchData } = useLibrarySearch(searchQuery, page, perPage) as {
+    data: LibraryResponse | undefined;
+  };
+
   const deleteMutation = useDeleteLibraryItem();
   const updateMutation = useUpdateLibraryItem();
   const toggleFavorite = useToggleFavorite();
@@ -27,7 +51,7 @@ export default function Library() {
   const currentPage = data?.page || 1;
   const totalItems = data?.total || 0;
 
-  const filtered = items.filter((item: any) => {
+  const filtered = items.filter((item: LibraryItem) => {
     const matchesStatus = filter === 'all' || item.status === filter;
     const matchesFavorite = !showFavoritesOnly || item.isFavorite;
     return matchesStatus && matchesFavorite;
@@ -45,7 +69,7 @@ export default function Library() {
 
   const handleAddTag = (id: string, tag: string) => {
     if (!tag.trim()) return;
-    const item = data?.find((i: any) => i.id === id);
+    const item = data?.find((i: LibraryItem) => i.id === id);
     if (!item) return;
     const currentTags = item.tags || [];
     if (currentTags.includes(tag.trim())) return;
@@ -54,7 +78,7 @@ export default function Library() {
   };
 
   const handleRemoveTag = (id: string, tag: string) => {
-    const item = data?.find((i: any) => i.id === id);
+    const item = data?.find((i: LibraryItem) => i.id === id);
     if (!item) return;
     const currentTags = item.tags || [];
     updateMutation.mutate({ id, updates: { tags: currentTags.filter((t: string) => t !== tag) } });
@@ -135,7 +159,7 @@ export default function Library() {
           visible: { transition: { staggerChildren: 0.05 } },
         }}
       >
-        {filtered.map((item: any) => (
+        {filtered.map((item: LibraryItem) => (
           <motion.div
             key={item.id}
             variants={{
