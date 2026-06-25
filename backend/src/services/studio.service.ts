@@ -1,9 +1,12 @@
 import { prisma } from './db.js';
 import { z } from 'zod';
+import { getAIProvider } from './ai/index.js';
 
 const generateIdeasSchema = z.object({
   projectId: z.string().min(1),
   brief: z.string().min(10).max(4000),
+  tone: z.enum(['professional', 'casual', 'educational', 'entertaining']).optional(),
+  count: z.number().min(1).max(10).optional(),
 });
 
 export async function generateIdeas(userId: string, input: unknown) {
@@ -11,29 +14,78 @@ export async function generateIdeas(userId: string, input: unknown) {
   const project = await prisma.contentProject.findFirst({ where: { id: data.projectId, userId } });
   if (!project) throw new Error('Project not found');
 
+  const provider = getAIProvider();
+  const tone = data.tone || 'educational';
+  const count = data.count || 5;
+
+  const prompt = [
+    `You are a creative content strategist for a faceless YouTube channel.`,
+    `Project: "${project.title}"`,
+    `Brief: "${data.brief}"`,
+    `Tone: ${tone}.`,
+    `Generate exactly ${count} content ideas.`,
+    `Each idea should have a catchy title and a one-sentence brief.`,
+    `Format: Number each idea. Title: ... | Brief: ...`,
+    `No AI self-reference. Be specific and actionable.`,
+  ].join('\n');
+
+  const result = await provider.generateText({
+    prompt,
+    temperature: 0.8,
+    maxTokens: 2048,
+  });
+
+  const ideas = result.output
+    .split('\n')
+    .filter((line: string) => line.trim().length > 0)
+    .map((line: string, idx: number) => {
+      const cleaned = line.replace(/^\d+[\.\)]\s*/, '').trim();
+      const titleMatch = cleaned.match(/Title:\s*(.+?)(?:\s*\||$)/i);
+      const briefMatch = cleaned.match(/Brief:\s*(.+)/i);
+      return {
+        id: crypto.randomUUID(),
+        title: titleMatch?.[1]?.trim() || `Idea ${idx + 1}`,
+        brief: briefMatch?.[1]?.trim() || cleaned,
+        createdAt: new Date().toISOString(),
+      };
+    });
+
   return {
     projectId: project.id,
-    ideas: [
-      {
-        id: crypto.randomUUID(),
-        title: `Idea: ${data.brief.slice(0, 32)}`,
-        brief: data.brief,
-        createdAt: new Date().toISOString(),
-      },
-    ],
+    model: result.model,
+    provider: result.provider,
+    ideas,
   };
 }
 
 const generateImageSchema = z.object({
   prompt: z.string().min(5).max(2000),
+  workflow: z.record(z.unknown()).optional(),
 });
 
 export async function generateImage(input: unknown) {
   const data = generateImageSchema.parse(input);
-  const mediaUrl = process.env.COMFYUI_BASE_URL
-    ? `${process.env.COMFYUI_BASE_URL}/view?filename=${encodeURIComponent(data.prompt)}`
-    : 'https://placehold.co/1024x1024/000000/FFF?text=No+image+generator+configured';
-  return { url: mediaUrl };
+
+  if (!process.env.COMFYUI_BASE_URL) {
+    return {
+      url: 'https://placehold.co/1024x1024/000000/FFF?text=ComfyUI+not+configured',
+      provider: 'placeholder',
+      message: 'COMFYUI_BASE_URL is not configured. Set it in your .env to enable image generation.',
+    };
+  }
+
+  const { generateComfyUIImage } = await import('./ai/comfyui.service.js');
+  const result = await generateComfyUIImage({
+    prompt: data.prompt,
+    workflow: data.workflow,
+    filename: `mint-${Date.now()}`,
+  });
+
+  return {
+    url: result.url,
+    provider: result.provider,
+    promptId: result.promptId,
+  };
 }
 
 const ollamaChatSchema = z.object({

@@ -1,25 +1,26 @@
 import { useState, useCallback } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { apiClient } from '@/lib/api/client';
-
-type GenerationType = string;
+import { useGenerateContent } from '@/stores/studio';
+import { useSaveToLibrary } from '@/stores/library';
+import AIStatusBadge from './AIStatusBadge';
 
 type GeneratedItem = {
   id: string;
-  type: GenerationType;
+  type: string;
   content: string;
+  model?: string;
+  provider?: string;
   createdAt: string;
 };
 
-type GenerationInput = {
-  projectId: string;
-  topic: string;
-  type: GenerationType;
-  tone?: 'professional' | 'casual' | 'educational' | 'entertaining';
-};
+const generationFormSchema = z.object({
+  topic: z.string().min(3, 'Topic must be at least 3 characters'),
+  type: z.enum(['youtube_script', 'instagram_caption', 'thumbnail_prompt', 'hook', 'scenario', 'all']),
+  tone: z.enum(['professional', 'casual', 'educational', 'entertaining']),
+});
 
 const typeMap: Record<string, string> = {
   youtube_script: 'script',
@@ -30,55 +31,9 @@ const typeMap: Record<string, string> = {
   all: 'full_package',
 };
 
-export function useGenerateContent() {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (input: GenerationInput) => {
-      const res = await apiClient.post('/studio/generate', {
-        type: typeMap[input.type] || input.type,
-        topic: input.topic,
-        tone: input.tone,
-      });
-      const data = await res.json();
-      return {
-        items: [{
-          id: data.id,
-          type: input.type,
-          content: data.content,
-          createdAt: data.createdAt,
-        }],
-      };
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['library'] });
-    },
-  });
-}
-
-export function useLibraryItems() {
-  return useQuery({
-    queryKey: ['library'],
-    queryFn: (): { items: GeneratedItem[] } => {
-      try {
-        const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('mint_library') : null;
-        return { items: raw ? (JSON.parse(raw) as GeneratedItem[]) : [] };
-      } catch {
-        return { items: [] };
-      }
-    },
-  });
-}
-
-const generationFormSchema = z.object({
-  topic: z.string().min(3, 'Topic must be at least 3 characters'),
-  type: z.enum(['youtube_script', 'instagram_caption', 'thumbnail_prompt', 'hook', 'scenario', 'all']),
-  tone: z.enum(['professional', 'casual', 'educational', 'entertaining']),
-});
-
 export function ContentGenerator() {
-  const [projectId] = useState('default-project');
   const generate = useGenerateContent();
+  const saveToLibrary = useSaveToLibrary();
   const [selectedItem, setSelectedItem] = useState<GeneratedItem | null>(null);
   const [copyFeedback, setCopyFeedback] = useState('');
   const [generatingVideo, setGeneratingVideo] = useState(false);
@@ -101,14 +56,25 @@ export function ContentGenerator() {
   });
 
   const onSubmit = async (data: z.infer<typeof generationFormSchema>) => {
-    const result = await generate.mutateAsync({
-      projectId,
-      topic: data.topic.trim(),
-      type: data.type,
-      tone: data.tone,
-    });
+    try {
+      const result = await generate.mutateAsync({
+        type: typeMap[data.type] || data.type,
+        topic: data.topic.trim(),
+        tone: data.tone,
+      });
 
-    if (result.items?.[0]) setSelectedItem(result.items[0]);
+      const item: GeneratedItem = {
+        id: result.id || crypto.randomUUID(),
+        type: data.type,
+        content: result.content,
+        model: result.model,
+        provider: result.provider,
+        createdAt: result.createdAt || new Date().toISOString(),
+      };
+      setSelectedItem(item);
+    } catch (err) {
+      // error is handled by mutation state
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -117,10 +83,25 @@ export function ContentGenerator() {
     setTimeout(() => setCopyFeedback(''), 2000);
   };
 
+  const handleSaveToLibrary = async (item: GeneratedItem) => {
+    try {
+      await saveToLibrary.mutateAsync({
+        content: item.content,
+        platform: item.type,
+        status: 'draft',
+      });
+      setCopyFeedback('Saved');
+      setTimeout(() => setCopyFeedback(''), 2000);
+    } catch {
+      // save failed silently
+    }
+  };
+
   const generateVideoFromScript = useCallback(async (script: string) => {
     setGeneratingVideo(true);
     setVideoUrl(null);
     try {
+      const { apiClient } = await import('@/lib/api/client');
       const res = await apiClient.post('/studio/generate-video', { script, platform: 'youtube_shorts' });
       const data = await res.json();
       if (data.url) setVideoUrl(data.url);
@@ -135,6 +116,7 @@ export function ContentGenerator() {
     setGeneratingAudio(true);
     setAudioUrl(null);
     try {
+      const { apiClient } = await import('@/lib/api/client');
       const res = await apiClient.post('/studio/generate-voice', { text });
       const data = await res.json();
       if (data.audioUrl) setAudioUrl(data.audioUrl);
@@ -145,23 +127,13 @@ export function ContentGenerator() {
     }
   }, []);
 
-  const saveToLibrary = async (item: GeneratedItem) => {
-    const current = qc.getQueryData<{ items: GeneratedItem[] }>(['library']);
-    const next = { items: [item, ...(current?.items ?? [])] };
-    qc.setQueryData(['library'], next);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('mint_library', JSON.stringify(next.items));
-    }
-    setCopyFeedback('Saved');
-    setTimeout(() => setCopyFeedback(''), 2000);
-  };
-
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-black uppercase text-white">
           Content Studio
         </h1>
+        <AIStatusBadge />
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4 rounded-3xl border border-white/5 bg-white/[0.02] p-6">
@@ -228,9 +200,9 @@ export function ContentGenerator() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || generate.isPending}
             className={`ml-auto h-12 rounded-2xl bg-mint-500 px-8 font-black uppercase tracking-[0.2em] text-mint-950 shadow-[0_20px_40px_rgba(13,148,136,.35)] hover:brightness-110 disabled:opacity-60 ${
-              isSubmitting ? 'opacity-70' : ''
+              isSubmitting || generate.isPending ? 'opacity-70' : ''
             }`}
           >
             {generate.isPending ? 'Generating…' : 'Generate'}
@@ -261,6 +233,11 @@ export function ContentGenerator() {
                 {selectedItem.content}
               </pre>
             </div>
+            {selectedItem.provider && (
+              <div className="text-[10px] text-muted-foreground/50">
+                Generated by {selectedItem.provider} · {selectedItem.model}
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-2 space-y-4">
@@ -273,14 +250,13 @@ export function ContentGenerator() {
                 Copy to clipboard
               </button>
               <button
-                onClick={async () => {
-                  await saveToLibrary(selectedItem);
-                }}
-                className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50"
+                onClick={() => handleSaveToLibrary(selectedItem)}
+                disabled={saveToLibrary.isPending}
+                className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50 disabled:opacity-50"
               >
-                Save to library
+                {saveToLibrary.isPending ? 'Saving...' : 'Save to library'}
               </button>
-              {selectedItem.type === 'script' && (
+              {selectedItem.type === 'youtube_script' && (
                 <>
                   <button
                     onClick={() => generateVoiceover(selectedItem.content)}
@@ -342,4 +318,3 @@ export function ContentGenerator() {
     </div>
   );
 }
-

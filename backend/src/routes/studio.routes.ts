@@ -104,4 +104,42 @@ export default async function studioRoutes(fastify: any) {
     const { transcribeAudio } = await import('../services/ai/whisper.service.js');
     return await transcribeAudio({ audioBase64: body.audioBase64 });
   });
+
+  const generateIdeasSchema = z.object({
+    projectId: z.string().min(1),
+    brief: z.string().min(10).max(4000),
+    tone: z.enum(['professional', 'casual', 'educational', 'entertaining']).optional(),
+    count: z.number().min(1).max(10).optional(),
+  });
+
+  fastify.post('/studio/generate-ideas', { preHandler: authMiddleware }, async (request: any) => {
+    const body = generateIdeasSchema.parse(request.body);
+    const userId = request.user?.sub || request.user?.email;
+    const { generateIdeas } = await import('../services/studio.service.js');
+    return await generateIdeas(userId, body);
+  });
+
+  fastify.get('/studio/ai-status', { preHandler: authMiddleware }, async () => {
+    const hasDeepSeek = !!process.env.DEEPSEEK_API_KEY;
+    const hasOpenAI = !!process.env.OPENAI_API_KEY;
+    const hasOllama = !!process.env.OLLAMA_BASE_URL;
+    const hasComfyUI = !!process.env.COMFYUI_BASE_URL;
+
+    const primary = process.env.LLM_PROVIDER || 'deepseek';
+    let activeProvider = 'ollama';
+    if (primary === 'deepseek' && hasDeepSeek) activeProvider = 'deepseek';
+    else if (primary === 'openai' && hasOpenAI) activeProvider = 'openai';
+    else if (hasDeepSeek) activeProvider = 'deepseek';
+    else if (hasOpenAI) activeProvider = 'openai';
+
+    return {
+      activeProvider,
+      providers: {
+        deepseek: hasDeepSeek,
+        openai: hasOpenAI,
+        ollama: hasOllama,
+        comfyui: hasComfyUI,
+      },
+    };
+  });
 }

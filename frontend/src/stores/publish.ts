@@ -4,14 +4,21 @@ import { apiClient } from '@/lib/api/client';
 export function usePublishQueue() {
   return useQuery({
     queryKey: ['publish'],
-    queryFn: () => apiClient.get('/publish').then((res: any) => res.queue),
+    queryFn: async () => {
+      const res = await apiClient.get('/publish');
+      const data = await res.json();
+      return data.queue || [];
+    },
   });
 }
 
 export function usePublishItem() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (postId: string) => apiClient.post('/publish', { postId }),
+    mutationFn: async (postId: string) => {
+      const res = await apiClient.post('/publish', { postId });
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['publish'] });
       queryClient.invalidateQueries({ queryKey: ['library'] });

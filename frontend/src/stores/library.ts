@@ -4,14 +4,21 @@ import { apiClient } from '@/lib/api/client';
 export function useLibrary() {
   return useQuery({
     queryKey: ['library'],
-    queryFn: () => apiClient.get('/library').then((res: any) => res.items),
+    queryFn: async () => {
+      const res = await apiClient.get('/library');
+      const data = await res.json();
+      return data.items || [];
+    },
   });
 }
 
 export function useLibraryItem(id: string) {
   return useQuery({
     queryKey: ['library', id],
-    queryFn: () => apiClient.get(`/library/${id}`),
+    queryFn: async () => {
+      const res = await apiClient.get(`/library/${id}`);
+      return res.json();
+    },
     enabled: !!id,
   });
 }
@@ -40,8 +47,10 @@ export function useUpdateLibraryItem() {
 export function useSaveToLibrary() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { content: string; platform?: string; status?: string; projectId?: string }) =>
-      apiClient.post('/library', data),
+    mutationFn: async (data: { content: string; platform?: string; status?: string; projectId?: string }) => {
+      const res = await apiClient.post('/library', data);
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['library'] });
     },
