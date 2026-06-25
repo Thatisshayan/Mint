@@ -17,6 +17,7 @@
     "backend:build": "tsc -p backend/tsconfig.json",
     "backend:start": "node backend/dist/index.js",
     "start": "node backend/dist/index.js",
+    "dev:all": "concurrently \"npm run backend:dev\" \"npm run dev\"",
     "test": "vitest run"
   },
   "dependencies": {
