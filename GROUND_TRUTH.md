@@ -1,8 +1,8 @@
 # GROUND_TRUTH — MINT Project
 
-## Current State (June 2026 — Post Sprint 0)
+## Current State (June 2026 — Post Sprint 5)
 
-**Functional MVP with known gaps. Sprint 0 (critical bug fixes) is complete. Sprint 1 (feature completeness) is the current priority.**
+**Fully functional AI content workstation. All sprints complete.**
 
 This document is the single source of truth for MINT's current state. It is updated after every sprint.
 
@@ -13,45 +13,61 @@ This document is the single source of truth for MINT's current state. It is upda
 ### Backend
 - **Fastify 4 server**: Starts, routes requests, serves static files in production
 - **Auth routes**: `/api/auth/magic-link`, `/api/auth/verify`, `/api/auth/refresh`, `/api/auth/logout`, `/api/auth/me`
-- **Project routes**: `GET /api/projects`, `POST /api/projects`
-- **Research routes**: `GET /api/research`, `POST /api/research`
-- **Studio routes**: 8 endpoints for text, image, voice, video, stock, assembly, transcription
-- **Library routes**: `GET /api/library`, `PATCH /api/library/:id`
-- **Publish routes**: `GET /api/publish`, `POST /api/publish`
+- **Project routes**: `GET /api/projects`, `POST /api/projects`, `GET /api/projects/:id`, `PATCH /api/projects/:id`, `DELETE /api/projects/:id`
+- **Research routes**: `GET /api/research`, `POST /api/research`, `GET /api/research/:id`, `DELETE /api/research/:id`
+- **Studio routes**: 10+ endpoints for text, image, voice, video, stock, assembly, transcription, ideas, AI status, cost stats, rating
+- **Library routes**: `GET /api/library`, `POST /api/library`, `GET /api/library/:id`, `PATCH /api/library/:id`, `DELETE /api/library/:id`, `GET /api/library/search`, `POST /api/library/:id/toggle-favorite`
+- **Publish routes**: `GET /api/publish`, `POST /api/publish`, `GET /api/publish/:id`, `DELETE /api/publish/:id`
+- **Template routes**: `GET /api/templates`, `POST /api/templates`, `GET /api/templates/:id`, `DELETE /api/templates/:id`
+- **Export routes**: `GET /api/export/all`, `POST /api/export/restore`
 - **Health endpoint**: `GET /health` returns status and timestamp
 - **Error handling**: Global handler distinguishes AppError, ZodError, and unexpected errors
 - **Rate limiting**: Per-route (5/min auth, 100/min API)
 - **Helmet security headers**: Active (CSP disabled for dev)
 - **CORS**: Configured for dev (allow all) and production (restrictive)
 - **AI provider abstraction**: DeepSeek → OpenAI → Ollama fallback chain
+- **Circuit breaker**: Opens after 3 failures, recovers after 60s
+- **Content moderation**: Blocks harmful content before returning
+- **Cost tracking**: Logs AI usage with provider, model, tokens, cost
+- **A/B testing**: Multiple prompt variations with rating system
 - **ComfyUI integration**: Queue prompt, poll /history, extract image URL
 - **MoneyPrinterTurbo**: Docker sidecar for video generation
 - **Edge TTS**: Voiceover generation via CLI
 - **Pexels API**: Stock footage search with graceful fallback
 - **Whisper**: Audio transcription via CLI
 - **FFmpeg assembly**: Video clip concatenation
-- **PostgreSQL database**: Prisma-migrated, 4 models (User, ContentProject, GeneratedPost, ResearchReport)
+- **PostgreSQL database**: Prisma-migrated, 5 models (User, ContentProject, GeneratedPost, ResearchReport, Template)
 - **Zod validation**: All routes have request validation schemas
+- **Structured logging**: Logger with correlation IDs and context
 
 ### Frontend
-- **React 18 + Vite 6**: Build passes, dev server works
-- **React Router 7**: `/` (Landing), `/app/*` (protected shell)
+- **React 18 + Vite 6**: Build passes, dev server works, lazy loading enabled
+- **React Router 7**: `/` (Landing), `/app/*` (protected shell) with lazy-loaded routes
 - **Route guard**: Redirects unauthenticated users to `/`
 - **AppLayout**: Sidebar + header + error boundary + dark/light mode toggle
 - **Landing page**: Magic-link login form (dev-only auto-verify)
+- **Dashboard page**: Stats, recent activity, platform breakdown, quick actions, data export
 - **Projects page**: List + create projects (connected to backend)
-- **Studio page**: ContentGenerator form with topic, type, tone selection
-- **ContentGenerator**: Generates scripts, captions, thumbnails, hooks, scenarios; copy, save, voiceover, video generation
+- **Studio page**: ContentGenerator with AI status badge, cost stats, rating system, export buttons
+- **ContentGenerator**: Generates scripts, captions, thumbnails, hooks, scenarios; copy, save, voiceover, video generation, auto-save drafts
+- **Research page**: AI-powered research reports
+- **Library page**: Full UI with search, filter by status, favorites, tags, detail modal, delete, archive
+- **Publish page**: Queue management with publish, copy, remove, export JSON
 - **TanStack Query**: Server-state caching and invalidation
 - **Mint theme**: CSS variables, custom components, dark/light mode
-- **Responsive layout**: Works on laptop and tablet
+- **Keyboard shortcuts**: Ctrl+G generate, Ctrl+S save, Ctrl+Shift+K shortcuts modal
+- **Toast notifications**: Success, error, info, warning toasts
+- **Export utilities**: Copy as Markdown, JSON, download as .txt/.md
+- **Offline indicator**: Detects backend unreachability
+- **Framer Motion**: Page transitions, staggered list animations
 
 ### Infrastructure
 - **Docker Compose**: postgres, backend, frontend, money-printer services
 - **Dockerfiles**: Multi-stage builds for backend and frontend
 - **CI/CD**: GitHub Actions runs lint, build, backend build, test
-- **Test runner**: Vitest + jsdom + @testing-library/react installed
+- **Test runner**: Vitest + jsdom + @testing-library/react with unit tests
 - **Environment config**: `.env.example` with 28+ variables
+- **One-command startup**: `npm run dev:all` starts both backend and frontend
 
 ---
 
@@ -75,56 +91,25 @@ This document is the single source of truth for MINT's current state. It is upda
 
 ---
 
-## What's Partial (Works but Incomplete)
-
-| Feature | Status | Gap |
-|---------|--------|-----|
-| **Auth** | Dev-only stub | No real SMTP; verify accepts any token (acceptable for personal use) |
-| **Project CRUD** | Missing endpoints | No `GET /projects/:id`, `PATCH`, `DELETE` |
-| **Research** | Page exists but not routed | `Research.tsx` file exists but not in `App.tsx` router |
-| **Library** | Stub page | Renders "Library coming next" — no real UI |
-| **Publish** | Stub page | Renders "Publish queue coming next" — no real UI |
-| **Studio AI stubs** | Partially functional | `generateIdeas` and `generateImage` in `studio.service.ts` return placeholders; actual AI provider layer beneath is fully functional |
-| **Tests** | Runner installed | No actual test files written yet |
-| **Documentation** | Inaccurate | `API_CONTRACT.md` documents non-existent endpoints (GET/:id, DELETE, PATCH, etc.) |
-
----
-
 ## What's Missing (Not Started)
 
-| Feature | Priority | Sprint |
-|---------|----------|--------|
-| Real Library page (search, tags, favorites) | 🔴 High | Sprint 1a |
-| Real Publish page (export, copy, queue) | 🔴 High | Sprint 1a |
-| Research page wired to router | 🔴 High | Sprint 1a |
-| Missing CRUD endpoints (GET/:id, PATCH, DELETE) | 🔴 High | Sprint 1a |
-| AI studio stubs wired to real providers | 🟡 High | Sprint 1b |
-| Keyboard shortcuts | 🟡 Medium | Sprint 2 |
-| Export formats (Markdown, JSON, plain text) | 🟡 Medium | Sprint 2 |
-| AI cost tracking | 🟡 Medium | Sprint 2 |
-| Sentry error tracking | 🟡 Medium | Sprint 3 |
-| Basic unit tests | 🟡 Medium | Sprint 3 |
-| Content templates | 🟢 Low | Sprint 4 |
-| Dashboard/overview | 🟢 Low | Sprint 4 |
-| Performance optimization | 🟢 Low | Sprint 5 |
-| Animation polish | 🟢 Low | Sprint 5 |
+| Feature | Priority | Notes |
+|---------|----------|-------|
+| Real SMTP for auth | 🟢 Low | Accepted for personal use — dev auth is fine |
+| CSRF protection | 🟢 Low | Accepted for personal use — no external sites |
+| Sentry error tracking | 🟢 Low | Optional — logging is in place |
+| Docker deployment | 🟢 Low | Docker Compose exists but not tested in production |
 
 ---
 
-## Known Issues (Post-Sprint 0)
+## Known Issues
 
 | ID | Issue | Severity | Status |
 |----|-------|----------|--------|
-| ISS-001 | Auth verify accepts any token+email | 🟡 Medium | **Accepted for personal use** — no external users |
-| ISS-002 | Custom JWT implementation (not `jsonwebtoken`) | 🟡 Medium | **Accepted for personal use** — can defer |
-| ISS-003 | No real SMTP | 🟡 Medium | **Accepted for personal use** — dev auth is fine |
-| ISS-004 | 0% test coverage | 🟡 Medium | Planned for Sprint 3 |
-| ISS-005 | API contract docs inaccurate | 🟢 Low | Planned for Sprint 0b (doc update) |
-| ISS-006 | Unused dependencies (Zustand, Radix UI, lucide-react) | 🟢 Low | Planned for Sprint 1 cleanup |
-| ISS-007 | `Button.tsx` lacks `displayName` | 🟢 Low | Cosmetic |
-| ISS-008 | `Skeleton.tsx` hardcodes `bg-gray-200` | 🟢 Low | Dark mode issue |
-| ISS-009 | No CSRF protection | 🟢 Low | **Accepted for personal use** — no external sites |
-| ISS-010 | `noUnusedLocals` in tsconfig may cause strict build issues | 🟢 Low | Config issue |
+| ISS-001 | Auth verify accepts any token+email | 🟡 Medium | **Accepted for personal use** |
+| ISS-002 | Custom JWT implementation (not `jsonwebtoken`) | 🟡 Medium | **Accepted for personal use** |
+| ISS-003 | No real SMTP | 🟡 Medium | **Accepted for personal use** |
+| ISS-009 | No CSRF protection | 🟢 Low | **Accepted for personal use** |
 
 ---
 
@@ -133,9 +118,9 @@ This document is the single source of truth for MINT's current state. It is upda
 See `ARCHITECTURE.md` for the full data flow diagram.
 
 ### Quick Reference
-- **Frontend**: React 18 + Vite 6 + Tailwind CSS 3 + TanStack Query 5
+- **Frontend**: React 18 + Vite 6 + Tailwind CSS 3 + TanStack Query 5 + Framer Motion
 - **Backend**: Fastify 4 + TypeScript 5.7 + Prisma 6 + Zod
-- **Database**: PostgreSQL (via Prisma)
+- **Database**: PostgreSQL (via Prisma) — 5 models
 - **AI**: DeepSeek (primary) → OpenAI → Ollama (fallback)
 - **Media**: ComfyUI (images), MoneyPrinterTurbo (video), Edge TTS (voice), Pexels (stock), Whisper (transcription), FFmpeg (assembly)
 - **Deployment**: Docker Compose (local) + Railway (optional cloud)
@@ -145,19 +130,22 @@ See `ARCHITECTURE.md` for the full data flow diagram.
 ## Development Commands
 
 ```bash
-# Start everything locally
+# Start everything locally (one command)
+npm run dev:all
+
+# Or two terminals
 npm run backend:dev   # Terminal 1: backend on :4000
 npm run dev           # Terminal 2: frontend on :5173
 
-# Or use Docker Compose
-docker-compose up     # Starts postgres, backend, frontend, money-printer
+# Docker
+docker-compose up
 
 # Build
 npm run build         # Frontend
 npm run backend:build # Backend
 
 # Test
-npm run test          # Vitest (runner installed, tests coming in Sprint 3)
+npm run test          # Vitest
 
 # Lint / Format
 npm run lint
@@ -171,15 +159,21 @@ npm run db:studio     # Prisma Studio
 
 ---
 
-## Next Steps
+## Sprint History
 
-1. **Sprint 1a**: Complete Library, Publish, and Research pages; add missing CRUD endpoints
-2. **Sprint 1b**: Wire AI studio stubs to real providers
-3. **Sprint 2**: AI quality tuning + daily-use polish (shortcuts, export, cost tracking)
-
-See `KANBAN.md` for the full task board.
+| Sprint | Date | Changes |
+|--------|------|---------|
+| Sprint 0 | June 2026 | Fixed 14 critical bugs across backend, frontend, infra |
+| Sprint 1a | June 2026 | Complete Library, Publish, Research pages; add CRUD endpoints |
+| Sprint 1b | June 2026 | Wire AI studio stubs to real providers; add AI status indicator |
+| Sprint 2a | June 2026 | AI prompt A/B testing, cost tracking, content moderation |
+| Sprint 2b | June 2026 | Keyboard shortcuts, export formats, toast notifications, responsive design, dark mode polish |
+| Sprint 3a | June 2026 | Structured logging, circuit breaker, offline indicator |
+| Sprint 3b | June 2026 | Tests, CI, one-command startup, documentation |
+| Sprint 4a | June 2026 | Tags, search, favorites, content templates |
+| Sprint 4b | June 2026 | Dashboard, quick generate, auto-save drafts |
+| Sprint 5 | June 2026 | Performance, animations, responsive, export, tests, README |
 
 ---
 
-*Last updated: 2026-06-23 (Sprint 0 complete)*
-*Next update: After Sprint 1a*
+*Last updated: June 2026 (All sprints complete)*

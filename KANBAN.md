@@ -30,8 +30,8 @@
 | 20 | Wire Research to router + sidebar | DONE | `App.tsx` has route; `AppShell.tsx` has sidebar link |
 | 21 | Rewrite stores/library.ts as TanStack Query | DONE | useLibrary, useLibraryItem, useDelete, useUpdate, useSaveToLibrary |
 | 22 | Rewrite stores/publish.ts as TanStack Query | DONE | usePublishQueue, usePublishItem, useDeletePublishItem |
-| 23 | Sprint 1b: Wire AI studio stubs to real providers | TODO | `generateIdeas` and `generateImage` need real AI provider integration |
-| 24 | Sprint 2: AI quality + daily use polish | TODO | Prompt A/B testing, cost tracking, keyboard shortcuts, export formats |
-| 25 | Sprint 3: Reliability + DevEx | TODO | Sentry, structured logging, circuit breaker, basic tests, one-command startup |
-| 26 | Sprint 4: Personal workflow features | TODO | Tags, search, favorites, templates, dashboard, auto-save |
-| 27 | Sprint 5: Final polish | TODO | Performance, animations, responsive, dark mode, Lighthouse 90+ |
+| 23 | Sprint 1b: Wire AI studio stubs to real providers | DONE | `generateIdeas` uses AI provider; `generateImage` uses ComfyUI; AI status indicator added |
+| 24 | Sprint 2: AI quality + daily use polish | DONE | Prompt A/B testing, cost tracking, content moderation, keyboard shortcuts, export formats, toast notifications |
+| 25 | Sprint 3: Reliability + DevEx | DONE | Structured logging, circuit breaker, offline indicator, tests, one-command startup, documentation |
+| 26 | Sprint 4: Personal workflow features | DONE | Tags, search, favorites, templates, dashboard, auto-save drafts |
+| 27 | Sprint 5: Final polish | DONE | Performance (lazy loading), animations (Framer Motion), data export, README |
