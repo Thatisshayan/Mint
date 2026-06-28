@@ -1,5 +1,6 @@
 import { prisma } from './db.js';
 import { z } from 'zod';
+import type { GeneratedPost } from '@prisma/client';
 
 const updatePostSchema = z.object({
   status: z.string().optional(),
@@ -41,7 +42,7 @@ export async function listPosts(userId: string, projectId?: string, page = 1, pe
     }),
   ]);
   return {
-    items: items.map((item) => ({ ...item, tags: deserializeTags(item.tags) })),
+    items: items.map((item: GeneratedPost) => ({ ...item, tags: deserializeTags(item.tags) })),
     total,
     page,
     perPage,
@@ -82,7 +83,7 @@ export async function searchPosts(userId: string, query: string, page = 1, perPa
     }),
   ]);
   return {
-    items: items.map((item) => ({ ...item, tags: deserializeTags(item.tags) })),
+    items: items.map((item: GeneratedPost) => ({ ...item, tags: deserializeTags(item.tags) })),
     total,
     page,
     perPage,
