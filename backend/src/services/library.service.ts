@@ -7,6 +7,20 @@ const updatePostSchema = z.object({
   isFavorite: z.boolean().optional(),
 });
 
+function serializeTags(tags: string[] | undefined): string {
+  return JSON.stringify(tags || []);
+}
+
+function deserializeTags(tags: string | null): string[] {
+  if (!tags) return [];
+  try {
+    const parsed = JSON.parse(tags);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function listPosts(userId: string, projectId?: string, page = 1, perPage = 20) {
   const skip = (page - 1) * perPage;
   const [items, total] = await Promise.all([
@@ -26,7 +40,13 @@ export async function listPosts(userId: string, projectId?: string, page = 1, pe
       },
     }),
   ]);
-  return { items, total, page, perPage, totalPages: Math.ceil(total / perPage) };
+  return {
+    items: items.map((item) => ({ ...item, tags: deserializeTags(item.tags) })),
+    total,
+    page,
+    perPage,
+    totalPages: Math.ceil(total / perPage),
+  };
 }
 
 export async function searchPosts(userId: string, query: string, page = 1, perPage = 20) {
@@ -41,9 +61,9 @@ export async function searchPosts(userId: string, query: string, page = 1, perPa
       where: {
         userId,
         OR: [
-          { content: { contains: lowerQuery, mode: 'insensitive' } },
-          { platform: { contains: lowerQuery, mode: 'insensitive' } },
-          { tags: { hasSome: [lowerQuery] } },
+          { content: { contains: lowerQuery } },
+          { platform: { contains: lowerQuery } },
+          { tags: { contains: lowerQuery } },
         ],
       },
       orderBy: { createdAt: 'desc' },
@@ -54,14 +74,20 @@ export async function searchPosts(userId: string, query: string, page = 1, perPa
       where: {
         userId,
         OR: [
-          { content: { contains: lowerQuery, mode: 'insensitive' } },
-          { platform: { contains: lowerQuery, mode: 'insensitive' } },
-          { tags: { hasSome: [lowerQuery] } },
+          { content: { contains: lowerQuery } },
+          { platform: { contains: lowerQuery } },
+          { tags: { contains: lowerQuery } },
         ],
       },
     }),
   ]);
-  return { items, total, page, perPage, totalPages: Math.ceil(total / perPage) };
+  return {
+    items: items.map((item) => ({ ...item, tags: deserializeTags(item.tags) })),
+    total,
+    page,
+    perPage,
+    totalPages: Math.ceil(total / perPage),
+  };
 }
 
 export async function updatePost(userId: string, id: string, updates: unknown) {
@@ -70,10 +96,17 @@ export async function updatePost(userId: string, id: string, updates: unknown) {
   if (!post) {
     throw new Error('Post not found');
   }
-  return prisma.generatedPost.update({
+
+  const updateData: Record<string, unknown> = { ...data };
+  if (data.tags !== undefined) {
+    updateData.tags = serializeTags(data.tags);
+  }
+
+  const updated = await prisma.generatedPost.update({
     where: { id },
-    data,
+    data: updateData,
   });
+  return { ...updated, tags: deserializeTags(updated.tags) };
 }
 
 export async function toggleFavorite(userId: string, id: string) {
@@ -88,9 +121,11 @@ export async function toggleFavorite(userId: string, id: string) {
 }
 
 export async function getPost(userId: string, id: string) {
-  return prisma.generatedPost.findFirst({
+  const post = await prisma.generatedPost.findFirst({
     where: { id, userId },
   });
+  if (!post) return null;
+  return { ...post, tags: deserializeTags(post.tags) };
 }
 
 export async function deletePost(userId: string, id: string) {
@@ -110,14 +145,15 @@ export async function createPost(userId: string, input: unknown) {
     tags: z.array(z.string()).optional(),
   }).parse(input);
 
-  return prisma.generatedPost.create({
+  const created = await prisma.generatedPost.create({
     data: {
       content: data.content,
       platform: data.platform,
       status: data.status,
-      tags: data.tags || [],
+      tags: serializeTags(data.tags),
       projectId: data.projectId || null,
       userId,
     },
   });
+  return { ...created, tags: deserializeTags(created.tags) };
 }

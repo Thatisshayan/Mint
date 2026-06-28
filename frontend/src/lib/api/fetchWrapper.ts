@@ -2,9 +2,24 @@ import { TOKEN_KEY } from '@/lib/api/auth';
 
 const IS_BROWSER = typeof window !== 'undefined';
 
-export const API_BASE_URL = IS_BROWSER
-  ? '/api'
-  : 'http://localhost:4000/api';
+// Desktop mode: use fixed port. Web mode: use relative /api path.
+// VITE_API_URL is set by Tauri build or .env file
+const getBaseUrl = (): string => {
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (IS_BROWSER) {
+    // Check if running inside Tauri (desktop mode)
+    // Tauri injects __TAURI__ on the window object
+    if (typeof window !== 'undefined' && '__TAURI__' in window) {
+      return 'http://localhost:19421/api';
+    }
+    return '/api';
+  }
+  return 'http://localhost:4000/api';
+};
+
+export const API_BASE_URL = getBaseUrl();
 
 export async function request(path: string, options: RequestInit & { auth?: boolean } = {}) {
   const url = `${API_BASE_URL}${path}`;
