@@ -9,16 +9,21 @@ import helmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
 import { ZodError } from 'zod';
 import { config } from './config.js';
-import { connectDb } from './services/db.js';
+import { connectDb, disconnectDb, prisma } from './services/db.js';
 import { AppError, ValidationError } from './lib/errors.js';
+
+const isDesktop = process.env.MINT_DESKTOP === 'true';
 
 export async function buildApp() {
   const app = fastify({ logger: { level: config.env === 'production' ? 'warn' : 'info' } });
 
   // CORS: restrictive in production, permissive in development
-  const allowedOrigins = config.env === 'production'
-    ? [process.env.FRONTEND_URL || 'https://mint.app']
-    : true; // allow all in development
+  // Desktop mode: allow localhost only
+  const allowedOrigins = isDesktop
+    ? [/^http:\/\/localhost:\d+$/]
+    : config.env === 'production'
+      ? [process.env.FRONTEND_URL || 'https://mint.app']
+      : true;
 
   await app.register(cors, {
     origin: allowedOrigins,
@@ -32,27 +37,29 @@ export async function buildApp() {
   // Security headers via Helmet
   await app.register(helmet, { contentSecurityPolicy: false });
 
-  // Rate limiting: stricter for auth endpoints, standard for everything else
-  await app.register(rateLimit, {
-    global: false, // configure per-route
-    max: 100,
-    timeWindow: '1 minute',
-    errorResponseBuilder: (_req, context) => ({
-      statusCode: 429,
-      error: 'Too Many Requests',
-      message: `Rate limit exceeded. Try again in ${context.after}`,
-    }),
-  });
+  // Rate limiting: disable in desktop mode
+  if (!isDesktop) {
+    await app.register(rateLimit, {
+      global: false,
+      max: 100,
+      timeWindow: '1 minute',
+      errorResponseBuilder: (_req, context) => ({
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: `Rate limit exceeded. Try again in ${context.after}`,
+      }),
+    });
+  }
 
   // Health endpoint (no auth, no rate limit)
   app.get('/health', async () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),
+    mode: isDesktop ? 'desktop' : 'web',
   }));
 
   // Global error handler with operational error mapping
   app.setErrorHandler((err, _request, reply) => {
-    // Operational errors (expected, client-side issues)
     if (err instanceof AppError) {
       reply.status(err.statusCode).send({
         error: err.code,
@@ -62,7 +69,6 @@ export async function buildApp() {
       return;
     }
 
-    // Zod validation errors
     if (err.name === 'ZodError') {
       const validationError = new ValidationError(err as ZodError);
       reply.status(validationError.statusCode).send({
@@ -73,7 +79,6 @@ export async function buildApp() {
       return;
     }
 
-    // Programming errors / unexpected errors
     app.log.error(err);
     reply.status(500).send({
       error: 'INTERNAL_ERROR',
@@ -109,11 +114,15 @@ export async function buildApp() {
       return reply.status(404).send({ error: 'NOT_FOUND', message: 'Route not found' });
     });
   }
+
   const start = async () => {
     try {
       await connectDb();
-      await app.listen({ port: Number(process.env.PORT || 4000), host: '0.0.0.0' });
-      app.log.info(`Server running on http://0.0.0.0:${process.env.PORT || 4000}`);
+      const port = Number(process.env.PORT || 4000);
+      // Desktop mode: listen on localhost only
+      const host = isDesktop ? '127.0.0.1' : '0.0.0.0';
+      await app.listen({ port, host });
+      app.log.info(`Server running on http://${host}:${port} ${isDesktop ? '(desktop mode)' : ''}`);
     } catch (err) {
       app.log.error(err);
       process.exit(1);
@@ -123,3 +132,18 @@ export async function buildApp() {
 
   return app;
 }
+
+// Graceful shutdown
+async function shutdown(signal: string) {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  try {
+    await disconnectDb();
+    console.log('Database disconnected.');
+  } catch (err) {
+    console.error('Error disconnecting database:', err);
+  }
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
