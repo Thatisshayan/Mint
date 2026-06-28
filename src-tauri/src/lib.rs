@@ -1,11 +1,25 @@
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::Manager;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 
 const BACKEND_PORT: u16 = 19421;
+const WINDOW_STATE_FILE: &str = "window-state.json";
 
 struct BackendState {
     child: Mutex<Option<u32>>,
+}
+
+struct WindowStateDir(std::path::PathBuf);
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct WindowState {
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+    maximized: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -34,17 +48,12 @@ fn start_backend(app_dir: &std::path::Path, port: u16) -> Option<u32> {
     let db_path = app_dir.join("mint.db");
     let db_url = format!("file:{}", db_path.to_string_lossy());
 
-    // Try to find the backend entry point
-    // In dev mode: backend/src/index.ts (run via tsx)
-    // In production: backend/dist/index.js (compiled)
     let (cmd, args): (&str, Vec<String>) = if cfg!(debug_assertions) {
-        // Dev mode: use tsx to run TypeScript directly
         let backend_entry = std::env::current_dir()
             .ok()
             .map(|p| p.join("backend/src/index.ts"))
             .filter(|p| p.exists())
             .or_else(|| {
-                // Try relative to app dir
                 std::env::current_exe()
                     .ok()
                     .and_then(|e| e.parent()?.parent()?.parent()?.join("backend/src/index.ts").into())
@@ -64,7 +73,6 @@ fn start_backend(app_dir: &std::path::Path, port: u16) -> Option<u32> {
             }
         }
     } else {
-        // Production mode: run compiled JS
         let backend_entry = std::env::current_exe()
             .ok()
             .and_then(|e| {
@@ -131,6 +139,21 @@ fn wait_for_backend(port: u16) -> bool {
     false
 }
 
+fn load_window_state(app_dir: &std::path::Path) -> WindowState {
+    let state_path = app_dir.join(WINDOW_STATE_FILE);
+    std::fs::read_to_string(&state_path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn save_window_state(app_dir: &std::path::Path, state: &WindowState) {
+    let state_path = app_dir.join(WINDOW_STATE_FILE);
+    if let Ok(json) = serde_json::to_string_pretty(state) {
+        let _ = std::fs::write(&state_path, json);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -138,31 +161,26 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(BackendState {
             child: Mutex::new(None),
         })
         .setup(|app| {
-            // Get app data directory for SQLite
             let app_dir = app
                 .path()
                 .app_local_data_dir()
                 .expect("failed to get app data dir");
             std::fs::create_dir_all(&app_dir).expect("failed to create app data dir");
 
-            // Find a free port
+            // Start backend
             let port = BACKEND_PORT;
             println!("Using port: {}", port);
-
-            // Start backend
             let child_id = start_backend(&app_dir, port);
-
-            // Store state
             {
                 let state = app.state::<BackendState>();
                 *state.child.lock().unwrap() = child_id;
             }
 
-            // Wait for backend to be ready
             let ready = wait_for_backend(port);
             if ready {
                 println!("Backend is ready on port {}", port);
@@ -170,23 +188,126 @@ pub fn run() {
                 eprintln!("Backend failed to start within timeout");
             }
 
-            // Get the main window
+            // Restore window state
+            let window_state = load_window_state(&app_dir);
             let window = app.get_webview_window("main").unwrap();
 
-            // In dev mode, navigate to Vite dev server
+            if window_state.x != 0 || window_state.y != 0 {
+                let _ = window.set_position(tauri::Position::Physical(
+                    tauri::PhysicalPosition::new(window_state.x, window_state.y),
+                ));
+            }
+            if window_state.width > 0 && window_state.height > 0 {
+                let _ = window.set_size(tauri::Size::Physical(
+                    tauri::PhysicalSize::new(window_state.width, window_state.height),
+                ));
+            }
+            if window_state.maximized {
+                let _ = window.maximize();
+            }
+
+            app.manage(WindowStateDir(app_dir));
+
+            // Dev mode: navigate to Vite dev server
             if cfg!(debug_assertions) {
                 let dev_url = "http://localhost:5173";
                 window.navigate(dev_url.parse().unwrap());
             }
 
+            // --- System Tray ---
+            let show_item = MenuItem::with_id(app, "show", "Show MINT", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit MINT", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .tooltip("MINT — AI Content Workstation")
+                .on_menu_event(move |app, event| {
+                    match event.id.as_ref() {
+                        "show" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "quit" => {
+                            let state = app.state::<BackendState>();
+                            if let Some(child_id) = state.child.lock().unwrap().take() {
+                                kill_process(child_id);
+                            }
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
+            // --- Global Shortcuts ---
+            use tauri_plugin_global_shortcut::GlobalShortcutExt;
+            {
+                let handle = app.handle().clone();
+                app.global_shortcut().on_shortcut("CommandOrControl+G", move |_app, _shortcut, event| {
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        let _ = handle.emit("shortcut-generate", ());
+                    }
+                })?;
+            }
+            {
+                let handle = app.handle().clone();
+                app.global_shortcut().on_shortcut("CommandOrControl+S", move |_app, _shortcut, event| {
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        let _ = handle.emit("shortcut-save", ());
+                    }
+                })?;
+            }
+
             Ok(())
         })
         .on_window_event(|app, event| {
-            if let tauri::WindowEvent::CloseRequested { .. } = event {
-                let state = app.state::<BackendState>();
-                if let Some(child_id) = state.child.lock().unwrap().take() {
-                    kill_process(child_id);
-                    println!("Backend process {} terminated", child_id);
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Minimize to tray instead of closing
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.hide();
+                    api.prevent_close();
+                }
+            }
+
+            if let tauri::WindowEvent::Moved(position) = event {
+                if let Some(state_dir) = app.try_state::<WindowStateDir>() {
+                    let current = load_window_state(&state_dir.0);
+                    let window_state = WindowState {
+                        x: position.x,
+                        y: position.y,
+                        ..current
+                    };
+                    save_window_state(&state_dir.0, &window_state);
+                }
+            }
+
+            if let tauri::WindowEvent::Resized(size) = event {
+                if let Some(state_dir) = app.try_state::<WindowStateDir>() {
+                    let current = load_window_state(&state_dir.0);
+                    let window_state = WindowState {
+                        width: size.width,
+                        height: size.height,
+                        ..current
+                    };
+                    save_window_state(&state_dir.0, &window_state);
                 }
             }
         })

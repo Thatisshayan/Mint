@@ -38,3 +38,7 @@ Thumbs.db
 # SQLite local DB
 **/mint.sqlite
 **/mint.sqlite-journal
+
+# Tauri
+src-tauri/target/
+src-tauri/Cargo.lock
