@@ -31,13 +31,13 @@ jobs:
         run: npm ci
 
       - name: Install backend dependencies
-        run: npm install --prefix backend
+        run: cd backend && npm install
 
       - name: Generate Prisma client
-        run: npx --prefix backend prisma generate
+        run: cd backend && npx prisma generate
 
       - name: Build backend
-        run: npm run build --prefix backend
+        run: cd backend && npm run build
 
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
