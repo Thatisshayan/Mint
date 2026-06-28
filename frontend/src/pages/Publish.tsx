@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { usePublishQueue, usePublishItem, useDeletePublishItem } from '@/stores/publish';
 import { exportQueueAsJSON } from '@/lib/export';
-import Button from '@/components/ui/Button';
 import Skeleton from '@/components/ui/Skeleton';
 
 const STATUS_LABEL: Record<string, string> = {

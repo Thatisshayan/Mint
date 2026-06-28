@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { useNavigate } from 'react-router-dom';
 import { downloadAsJSON } from '@/lib/export';
-import { useToast } from '@/components/Toast';
+import { useToast } from '@/context/toastContext';
 
 interface DashboardStats {
   totalContent: number;
