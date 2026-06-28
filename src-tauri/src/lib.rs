@@ -12,6 +12,7 @@ struct BackendState {
 }
 
 struct WindowStateDir(std::path::PathBuf);
+struct AppDataDir(std::path::PathBuf);
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 struct WindowState {
@@ -42,6 +43,119 @@ fn get_ai_status() -> AiStatus {
 #[tauri::command]
 fn get_backend_port() -> u16 {
     BACKEND_PORT
+}
+
+#[tauri::command]
+fn find_ffmpeg() -> Option<String> {
+    // Check common locations
+    let candidates = if cfg!(target_os = "windows") {
+        vec![
+            "ffmpeg.exe".to_string(),
+            format!("{}\\ffmpeg\\bin\\ffmpeg.exe", std::env::var("LOCALAPPDATA").unwrap_or_default()),
+            format!("{}\\ffmpeg\\bin\\ffmpeg.exe", std::env::var("PROGRAMFILES").unwrap_or_default()),
+        ]
+    } else if cfg!(target_os = "macos") {
+        vec![
+            "/opt/homebrew/bin/ffmpeg".to_string(),
+            "/usr/local/bin/ffmpeg".to_string(),
+            "/usr/bin/ffmpeg".to_string(),
+        ]
+    } else {
+        vec![
+            "/usr/bin/ffmpeg".to_string(),
+            "/usr/local/bin/ffmpeg".to_string(),
+        ]
+    };
+
+    for path in &candidates {
+        if std::path::Path::new(path).exists() {
+            return Some(path.clone());
+        }
+    }
+
+    // Try which/where command
+    let which_cmd = if cfg!(target_os = "windows") { "where" } else { "which" };
+    if let Ok(output) = std::process::Command::new(which_cmd).arg("ffmpeg").output() {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let first_line = stdout.lines().next().unwrap_or("").trim().to_string();
+            if !first_line.is_empty() {
+                return Some(first_line);
+            }
+        }
+    }
+
+    None
+}
+
+#[tauri::command]
+fn start_ollama() -> Result<String, String> {
+    // Check if already running
+    if reqwest::blocking::get("http://localhost:11434/api/tags").is_ok() {
+        return Ok("Ollama is already running".to_string());
+    }
+
+    // Try to start ollama serve
+    let result = std::process::Command::new("ollama")
+        .arg("serve")
+        .spawn();
+
+    match result {
+        Ok(_child) => {
+            // Wait a bit for it to start
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            if reqwest::blocking::get("http://localhost:11434/api/tags").is_ok() {
+                Ok("Ollama started successfully".to_string())
+            } else {
+                Ok("Ollama process started, may still be initializing".to_string())
+            }
+        }
+        Err(e) => Err(format!("Failed to start Ollama: {}. Is it installed?", e)),
+    }
+}
+
+#[tauri::command]
+fn start_comfyui(app_dir: std::path::PathBuf) -> Result<String, String> {
+    // Check if already running
+    if reqwest::blocking::get("http://localhost:8188/system_stats").is_ok() {
+        return Ok("ComfyUI is already running".to_string());
+    }
+
+    // Common ComfyUI locations
+    let comfyui_paths = if cfg!(target_os = "windows") {
+        vec![
+            app_dir.join("../../ComfyUI/main.py"),
+            std::path::PathBuf::from("C:\\ComfyUI\\main.py"),
+        ]
+    } else {
+        vec![
+            app_dir.join("../../ComfyUI/main.py"),
+            std::path::PathBuf::from("~/ComfyUI/main.py"),
+        ]
+    };
+
+    for main_py in &comfyui_paths {
+        if main_py.exists() {
+            let python_dir = main_py.parent().unwrap();
+            let result = std::process::Command::new("python")
+                .arg("main.py")
+                .current_dir(python_dir)
+                .spawn();
+
+            match result {
+                Ok(_child) => {
+                    std::thread::sleep(std::time::Duration::from_secs(3));
+                    if reqwest::blocking::get("http://localhost:8188/system_stats").is_ok() {
+                        return Ok("ComfyUI started successfully".to_string());
+                    }
+                    return Ok("ComfyUI process started, may still be initializing".to_string());
+                }
+                Err(e) => return Err(format!("Failed to start ComfyUI: {}", e)),
+            }
+        }
+    }
+
+    Err("ComfyUI not found. Install it from https://github.com/comfyanonymous/ComfyUI".to_string())
 }
 
 fn start_backend(app_dir: &std::path::Path, port: u16) -> Option<u32> {
@@ -206,7 +320,8 @@ pub fn run() {
                 let _ = window.maximize();
             }
 
-            app.manage(WindowStateDir(app_dir));
+            app.manage(WindowStateDir(app_dir.clone()));
+            app.manage(AppDataDir(app_dir));
 
             // Dev mode: navigate to Vite dev server
             if cfg!(debug_assertions) {
@@ -314,6 +429,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_ai_status,
             get_backend_port,
+            find_ffmpeg,
+            start_ollama,
+            start_comfyui,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
