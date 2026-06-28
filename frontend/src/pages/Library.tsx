@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLibrary, useDeleteLibraryItem, useUpdateLibraryItem, useToggleFavorite, useLibrarySearch } from '@/stores/library';
-import Button from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import Skeleton from '@/components/ui/Skeleton';
 
 const STATUS_FILTER = ['all', 'draft', 'published', 'archived'] as const;
@@ -24,7 +24,7 @@ type LibraryResponse = {
 };
 
 export default function Library() {
-  const [filter, setFilter] = useState<'all' | 'draft' | 'published' | 'archified'>('all');
+  const [filter, setFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [selectedItem, setSelectedItem] = useState<LibraryItem | null>(null);
@@ -32,12 +32,12 @@ export default function Library() {
   const [page, setPage] = useState(1);
   const perPage = 20;
 
-const { data: allData, isLoading, error } = useLibrary(page, perPage) as {
-     data: LibraryResponse | undefined;
-     isLoading: boolean;
-     error: unknown;
-   };
-  const { data: searchData } = useLibrarySearch(searchQuery, page, perPage) as {
+const { data: allData, isLoading, error } = useLibrary(page, perPage) as unknown as {
+    data: LibraryResponse | undefined;
+    isLoading: boolean;
+    error: unknown;
+  };
+  const { data: searchData } = useLibrarySearch(searchQuery, page, perPage) as unknown as {
     data: LibraryResponse | undefined;
   };
 
@@ -69,7 +69,7 @@ const { data: allData, isLoading, error } = useLibrary(page, perPage) as {
 
   const handleAddTag = (id: string, tag: string) => {
     if (!tag.trim()) return;
-    const item = data?.find((i: LibraryItem) => i.id === id);
+    const item = data?.items?.find((i: LibraryItem) => i.id === id);
     if (!item) return;
     const currentTags = item.tags || [];
     if (currentTags.includes(tag.trim())) return;
@@ -78,7 +78,7 @@ const { data: allData, isLoading, error } = useLibrary(page, perPage) as {
   };
 
   const handleRemoveTag = (id: string, tag: string) => {
-    const item = data?.find((i: LibraryItem) => i.id === id);
+    const item = data?.items?.find((i: LibraryItem) => i.id === id);
     if (!item) return;
     const currentTags = item.tags || [];
     updateMutation.mutate({ id, updates: { tags: currentTags.filter((t: string) => t !== tag) } });
@@ -133,7 +133,7 @@ const { data: allData, isLoading, error } = useLibrary(page, perPage) as {
         </div>
       )}
 
-      {error && (
+      {!!error && (
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-400">
           Error loading library: {String(error)}
         </div>
