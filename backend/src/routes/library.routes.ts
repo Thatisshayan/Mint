@@ -6,8 +6,9 @@ export default async function libraryRoutes(fastify: FastifyInstance) {
   fastify.get('/library', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { listPosts } = await import('../services/library.service.js');
     const userId = request.user?.sub || request.user?.email;
-    const page = parseInt(request.query.page) || 1;
-    const perPage = parseInt(request.query.perPage) || 20;
+    const q = request.query as { page?: string; perPage?: string };
+    const page = parseInt(q.page ?? '') || 1;
+    const perPage = parseInt(q.perPage ?? '') || 20;
     return await listPosts(userId, undefined, page, perPage);
   });
 

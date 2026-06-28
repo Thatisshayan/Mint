@@ -35,7 +35,8 @@ export async function buildApp() {
   await app.register(jwt, { secret: config.jwtSecret });
 
   // Security headers via Helmet
-  await app.register(helmet, { contentSecurityPolicy: false });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await app.register(helmet as any, { contentSecurityPolicy: false });
 
   // Rate limiting: disable in desktop mode
   if (!isDesktop) {
@@ -100,7 +101,8 @@ export async function buildApp() {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const frontendDist = path.resolve(__dirname, '../../frontend/dist');
   if (fs.existsSync(frontendDist)) {
-    await app.register(fastifyStatic, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await app.register(fastifyStatic as any, {
       root: frontendDist,
       prefix: '/',
       wildcard: false,

@@ -18,7 +18,7 @@ export async function authMiddleware(request: FastifyRequest, reply: FastifyRepl
 
   try {
     const decoded = await request.server.jwt.verify(token);
-    request.user = decoded;
+    request.user = decoded as { sub: string; email: string };
   } catch {
     return reply.status(401).send({ error: 'UNAUTHORIZED', message: 'Invalid token' });
   }
