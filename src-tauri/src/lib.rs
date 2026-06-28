@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 
@@ -232,7 +232,7 @@ fn kill_process(pid: u32) {
             .args(["/PID", &pid.to_string(), "/T", "/F"])
             .output();
     }
-    #[cfg(target_os = "unix")]
+    #[cfg(unix)]
     {
         unsafe {
             libc::kill(pid as i32, libc::SIGTERM);
