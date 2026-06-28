@@ -1,6 +1,7 @@
 import { prisma } from './db.js';
 import { z } from 'zod';
-import type { GeneratedPost } from '@prisma/client';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GeneratedPost = Record<string, any>;
 
 const updatePostSchema = z.object({
   status: z.string().optional(),

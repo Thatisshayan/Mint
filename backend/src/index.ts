@@ -43,7 +43,7 @@ export async function buildApp() {
       global: false,
       max: 100,
       timeWindow: '1 minute',
-      errorResponseBuilder: (_req, context) => ({
+      errorResponseBuilder: (_req: unknown, context: { after: string }) => ({
         statusCode: 429,
         error: 'Too Many Requests',
         message: `Rate limit exceeded. Try again in ${context.after}`,
@@ -59,7 +59,7 @@ export async function buildApp() {
   }));
 
   // Global error handler with operational error mapping
-  app.setErrorHandler((err, _request, reply) => {
+  app.setErrorHandler((err: Error & { statusCode?: number; name: string }, _request, reply) => {
     if (err instanceof AppError) {
       reply.status(err.statusCode).send({
         error: err.code,
@@ -107,7 +107,7 @@ export async function buildApp() {
     });
 
     const indexHtmlPath = path.join(frontendDist, 'index.html');
-    app.setNotFoundHandler((_req, reply) => {
+    app.setNotFoundHandler((_req: unknown, reply) => {
       if (fs.existsSync(indexHtmlPath)) {
         return reply.type('text/html').send(fs.readFileSync(indexHtmlPath, 'utf-8'));
       }
