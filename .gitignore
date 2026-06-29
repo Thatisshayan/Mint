@@ -36,8 +36,14 @@ bun.lockb
 Thumbs.db
 
 # SQLite local DB
+**/mint.db
+**/mint.db-journal
 **/mint.sqlite
 **/mint.sqlite-journal
+
+# Installer output
+installer/output/
+*.exe
 
 # Tauri
 src-tauri/target/
