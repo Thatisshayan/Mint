@@ -158,68 +158,117 @@ fn start_comfyui(app_dir: std::path::PathBuf) -> Result<String, String> {
     Err("ComfyUI not found. Install it from https://github.com/comfyanonymous/ComfyUI".to_string())
 }
 
+/// Find the node.exe binary, trying PATH first then common Windows install locations.
+fn find_node() -> Option<std::path::PathBuf> {
+    // 1. Try PATH via `where.exe node` (Windows)
+    if let Ok(out) = std::process::Command::new("where.exe").arg("node").output() {
+        if out.status.success() {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            if let Some(line) = stdout.lines().next() {
+                let p = std::path::PathBuf::from(line.trim());
+                if p.exists() {
+                    println!("Found node via where.exe: {}", p.display());
+                    return Some(p);
+                }
+            }
+        }
+    }
+
+    // 2. Common Windows install paths
+    let candidates = [
+        r"C:\Program Files\nodejs\node.exe",
+        r"C:\Program Files (x86)\nodejs\node.exe",
+    ];
+    for c in &candidates {
+        let p = std::path::PathBuf::from(c);
+        if p.exists() {
+            println!("Found node at: {}", p.display());
+            return Some(p);
+        }
+    }
+
+    // 3. AppData\Roaming\nvm (nvm-windows)
+    if let Ok(appdata) = std::env::var("APPDATA") {
+        let nvm_dir = std::path::PathBuf::from(&appdata).join("nvm");
+        if nvm_dir.exists() {
+            if let Ok(entries) = std::fs::read_dir(&nvm_dir) {
+                let mut versions: Vec<_> = entries
+                    .flatten()
+                    .filter(|e| e.path().is_dir())
+                    .collect();
+                versions.sort_by_key(|e| e.file_name());
+                versions.reverse(); // newest first
+                if let Some(v) = versions.first() {
+                    let node_exe = v.path().join("node.exe");
+                    if node_exe.exists() {
+                        println!("Found node via nvm: {}", node_exe.display());
+                        return Some(node_exe);
+                    }
+                }
+            }
+        }
+    }
+
+    eprintln!("node.exe not found! Backend will not start.");
+    None
+}
+
 fn start_backend(app_dir: &std::path::Path, resource_dir: &std::path::Path, port: u16) -> Option<u32> {
     let db_path = app_dir.join("mint.db");
     let db_url = format!("file:{}", db_path.to_string_lossy());
 
-    let (cmd, args): (&str, Vec<String>) = if cfg!(debug_assertions) {
-        // Dev: run TypeScript source directly with tsx
-        let backend_entry = std::env::current_dir()
-            .ok()
-            .map(|p| p.join("backend/src/index.ts"))
-            .filter(|p| p.exists());
-
-        match backend_entry {
-            Some(entry) => ("node", vec![
-                "node".to_string(),
-                "--import".to_string(),
-                "tsx".to_string(),
-                entry.to_string_lossy().to_string(),
-            ]),
-            None => {
-                eprintln!("Backend entry point not found at backend/src/index.ts");
-                return None;
-            }
-        }
+    // Resolve node executable
+    let node_exe = if cfg!(debug_assertions) {
+        std::path::PathBuf::from("node")
     } else {
-        // Release: backend/dist is bundled into resources/ alongside the exe
-        // tauri.conf.json maps "../backend/dist" -> "resources/backend/dist"
-        let candidates = [
-            resource_dir.join("backend/dist/server.cjs"),
-            // fallback: older bundle layout
-            std::env::current_exe()
-                .ok()
-                .and_then(|e| e.parent().map(|p| p.join("resources/backend/dist/server.cjs")))
-                .unwrap_or_default(),
-        ];
-
-        let backend_entry = candidates.iter().find(|p| p.exists()).cloned();
-
-        match backend_entry {
-            Some(entry) => {
-                println!("Starting backend from: {}", entry.display());
-                ("node", vec!["node".to_string(), entry.to_string_lossy().to_string()])
-            }
-            None => {
-                eprintln!("Backend bundle not found. Checked: {:?}", candidates);
-                return None;
-            }
+        match find_node() {
+            Some(p) => p,
+            None => return None,
         }
     };
 
-    // Prisma query engine binary location — must be alongside server.cjs in production
-    let prisma_engine = if cfg!(debug_assertions) {
+    // Locate the backend entry point
+    let backend_entry = if cfg!(debug_assertions) {
         std::env::current_dir()
             .ok()
-            .map(|p| p.join("node_modules/@prisma/engines/query_engine-windows.dll.node"))
-            .unwrap_or_default()
+            .map(|p| p.join("backend/src/index.ts"))
+            .filter(|p| p.exists())
     } else {
-        resource_dir.join("backend/dist/query_engine-windows.dll.node")
+        let exe_dir = std::env::current_exe()
+            .ok()
+            .and_then(|e| e.parent().map(|p| p.to_path_buf()))
+            .unwrap_or_default();
+
+        // resource_dir is <install>/resources/ on Windows MSI
+        // bundle.resources maps "../backend/dist" -> "resources/backend/dist"
+        // so the files land at resource_dir + "backend/dist/"
+        let candidates = [
+            resource_dir.join("backend/dist/server.cjs"),
+            exe_dir.join("resources/backend/dist/server.cjs"),
+            exe_dir.join("backend/dist/server.cjs"),
+        ];
+        println!("Looking for backend in: {:?}", candidates);
+        candidates.iter().find(|p| p.exists()).cloned()
     };
 
-    let mut cmd_builder = std::process::Command::new(cmd);
+    let entry = match backend_entry {
+        Some(e) => e,
+        None => {
+            eprintln!("Backend entry point not found");
+            return None;
+        }
+    };
+    println!("Starting backend from: {}", entry.display());
+
+    // Prisma query engine binary — lives next to server.cjs in node_modules/.prisma/client/
+    let entry_dir = entry.parent().unwrap_or(std::path::Path::new("."));
+    let prisma_engine = entry_dir
+        .join("node_modules/.prisma/client/query_engine-windows.dll.node");
+
+    let node_str = node_exe.to_string_lossy().to_string();
+    let mut cmd_builder = std::process::Command::new(&node_str);
     cmd_builder
-        .args(&args[1..])
+        .arg(entry.to_string_lossy().as_ref())
         .env("DATABASE_URL", &db_url)
         .env("JWT_SECRET", "mint-desktop-secret")
         .env("PORT", port.to_string())
@@ -227,6 +276,7 @@ fn start_backend(app_dir: &std::path::Path, resource_dir: &std::path::Path, port
         .env("NODE_ENV", "production");
 
     if prisma_engine.exists() {
+        println!("Prisma engine: {}", prisma_engine.display());
         cmd_builder.env("PRISMA_QUERY_ENGINE_LIBRARY", prisma_engine.to_string_lossy().as_ref());
     }
 
@@ -258,14 +308,17 @@ fn kill_process(pid: u32) {
 
 fn wait_for_backend(port: u16) -> bool {
     let url = format!("http://localhost:{}/health", port);
-    for _ in 0..30 {
+    // Up to 45s: bundled backend with Prisma DLL can be slow on cold start
+    for i in 0..90 {
         if let Ok(res) = reqwest::blocking::get(&url) {
             if res.status().is_success() {
+                println!("Backend ready after ~{}ms", i * 500);
                 return true;
             }
         }
         std::thread::sleep(std::time::Duration::from_millis(500));
     }
+    eprintln!("Backend did not respond within 45s");
     false
 }
 
