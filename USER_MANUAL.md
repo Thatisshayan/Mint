@@ -1,7 +1,7 @@
 # MINT User Manual
 
 > **MINT** — Personal AI Content Workstation for Faceless YouTube Channels
-> Version: 0.6.0 (Sprint 6) | Last updated: 2025-01-21
+> Version: 0.2.0 | Last updated: June 2026
 
 ---
 
@@ -21,9 +21,8 @@
 12. [AI Providers & Configuration](#ai-providers--configuration)
 13. [Media Generation (Images, Voice, Video)](#media-generation-images-voice-video)
 14. [Data & Export](#data--export)
-15. [Mobile Usage](#mobile-usage)
-16. [Troubleshooting](#troubleshooting)
-17. [Known Limitations](#known-limitations)
+15. [Troubleshooting](#troubleshooting)
+16. [Known Limitations](#known-limitations)
 
 ---
 
@@ -31,9 +30,9 @@
 
 MINT is a personal tool for creating faceless YouTube channel content. It helps you:
 
-- **Generate AI content**: Scripts, hooks, captions, thumbnail prompts, and scenarios using DeepSeek, OpenAI, or Ollama (local)
+- **Generate AI content**: Scripts, hooks, captions, thumbnail prompts, and scenarios using Ollama (local, free)
 - **Organize content**: Save, tag, favorite, and search generated content in a library
-- **Create media**: Voiceover audio (Edge TTS), short videos (MoneyPrinterTurbo), and thumbnail images (ComfyUI)
+- **Create media**: Voiceover audio (Piper TTS), short videos (MoneyPrinterTurbo), and thumbnail images (ComfyUI)
 - **Research topics**: AI-assisted research reports for content ideas
 - **Manage projects**: Group content by project/channel
 - **Track costs**: Monitor AI token usage and estimated costs
@@ -48,118 +47,93 @@ MINT is built for **personal use only** — single user, no multi-user support, 
 ### Required Software
 
 - **Node.js** 18+ (for running the backend)
-- **PostgreSQL** 14+ (database, or use Docker)
-- **Docker & Docker Compose** (optional, recommended for easy setup)
+- **Ollama** (for local AI text generation — already installed)
 
 ### Optional External Services
 
 | Service | Purpose | Required? |
 |---------|---------|-----------|
-| DeepSeek API | AI text generation (primary) | No — falls back to OpenAI or Ollama |
-| OpenAI API | AI text generation (fallback) | No — falls back to Ollama |
-| Ollama | Local AI text generation (free) | No — only if you want local AI |
-| ComfyUI | AI image generation | No — only for thumbnail images |
-| MoneyPrinterTurbo | AI video generation | No — only for auto-generated videos |
+| Ollama | Local AI text generation (free) | Recommended — installed with llama3.2 |
+| ComfyUI | AI image generation | Optional — installed with SD 1.5 |
+| Piper TTS | Text-to-speech (offline) | Optional — installed |
+| MoneyPrinterTurbo | AI video generation | Optional — separate install |
 
 ### Environment Variables
 
 Create `backend/.env`:
 
 ```env
-# Database (required)
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/mint?schema=public"
+# LLM: Use Ollama locally (no API key needed)
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+
+# Image generation: Use ComfyUI
+IMAGE_PROVIDER=stable-diffusion
+COMFYUI_BASE_URL=http://localhost:8188
+
+# TTS: Use Piper
+TTS_PROVIDER=piper
+PIPER_EXECUTABLE=D:\AgentDevWork\Programs\piper-tts\piper.exe
 
 # JWT Secret (required for auth)
-JWT_SECRET="your-random-secret-string-here-min-32-chars"
+JWT_SECRET="your-random-secret-string-here"
 
-# AI Providers (at least one needed for generation)
-DEEPSEEK_API_KEY="sk-your-deepseek-key"
-# OPENAI_API_KEY="sk-your-openai-key"
-# OLLAMA_BASE_URL="http://localhost:11434"
-
-# LLM Provider preference (deepseek | openai | auto)
-LLM_PROVIDER="deepseek"
-
-# ComfyUI (optional, for image generation)
-# COMFYUI_BASE_URL="http://localhost:8188"
-
-# MoneyPrinterTurbo (optional, for video generation)
-# MONEY_PRINTER_URL="http://localhost:8501"
-
-# TTS (optional, uses Edge TTS by default)
-# TTS_BASE_URL="https://api.edge-tts.com/v1/tts"
+# Research: Add Brave Search API key for web research
+RESEARCH_PROVIDER=brave
+BRAVE_SEARCH_API_KEY=
 ```
 
 Create `frontend/.env`:
 
 ```env
-VITE_API_URL="http://localhost:4000"
+VITE_API_URL="http://localhost:4000/api"
 ```
 
 ---
 
 ## How to Run
 
-### Option 1: Docker (Recommended)
+### Option 1: Start All Services (Recommended)
 
 ```bash
-# Start everything (PostgreSQL + backend + frontend)
-docker-compose up
-
-# In another terminal, start the database migrations
-npm run db:migrate
-npm run db:seed
+start-mint.bat
 ```
 
-### Option 2: Manual (Development)
+This starts Ollama, ComfyUI, Backend, and Frontend.
+
+### Option 2: Manual Start
 
 ```bash
-# 1. Install dependencies
-npm install
+# 1. Start Ollama (if not running)
+ollama serve
 
-# 2. Set up database
-npm run db:migrate
-npm run db:seed
+# 2. Start backend
+node --import tsx/esm backend/src/index.ts
 
-# 3. Start both frontend and backend (in one terminal)
-npm run dev:all
-
-# Or start separately:
-npm run backend:dev   # Backend: http://localhost:4000
-npm run dev           # Frontend: http://localhost:5173
+# 3. Start frontend
+npx vite --host
 ```
 
-### Option 3: Production Build
+### Option 3: Development Mode
 
 ```bash
-# Build frontend
-npm run build
-
-# Build backend
-npm run backend:build
-
-# Start production server
-npm run backend:start
+npm run dev:all    # Backend + frontend concurrently
 ```
 
-The app will be available at `http://localhost:5173` (dev) or `http://localhost:4000` (production).
+The app will be available at `http://localhost:5173`.
 
 ---
 
 ## Authentication
 
-MINT uses **magic link authentication** for personal use. There is no real email sending configured in development.
+MINT uses **magic link authentication** for personal use. In development mode, it auto-verifies with a dummy token.
 
 ### How to Sign In
 
-1. Go to the login page
+1. Go to http://localhost:5173
 2. Enter your email address
-3. Click "Send Magic Link"
-4. The link is printed to the **backend console** (not sent to your email)
-5. Copy the link from the console and paste it in your browser
-6. You are now logged in
-
-**Note**: In production, you would configure an SMTP service (SendGrid, Mailgun, etc.) in `backend/.env` with `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`.
+3. Click "Continue" or "Launch Mint"
+4. You are now logged in (dev auto-authenticates)
 
 ---
 
@@ -169,7 +143,7 @@ The Dashboard (`/app/dashboard`) shows:
 
 - **Quick stats**: Total content items, drafts, published, favorites
 - **Recent activity**: Latest generated content
-- **AI status**: Which provider is active (DeepSeek, OpenAI, or Ollama)
+- **AI status**: Which provider is active (Ollama, DeepSeek, or OpenAI)
 - **Cost tracking**: Today's/this week's AI usage cost and token count
 - **Circuit breaker status**: Health of AI providers (open/closed/half-open)
 
@@ -216,13 +190,6 @@ The Studio is the core of MINT. Navigate to `/app/studio`.
 - **Save to library** — store permanently (Ctrl+S)
 - **Rate the output** — 1-5 stars (helps prompt A/B testing)
 
-### For YouTube Scripts Only
-
-When the generated content is a YouTube script, two extra buttons appear:
-
-- **Generate Voiceover** — converts script to AI narration audio (Edge TTS)
-- **Generate Short Video** — sends script to MoneyPrinterTurbo for auto-assembly
-
 ### Auto-Save Drafts
 
 The Studio auto-saves your topic, type, and tone as a draft every 5 seconds. If you refresh the page, your inputs are restored. Drafts are cleared after successful generation.
@@ -237,15 +204,11 @@ Navigate to `/app/library`.
 
 - **Pagination**: 20 items per page (use Prev/Next buttons)
 - **Filter by status**: All / Draft / Published / Archived
-- **Favorites**: Toggle ★ to mark items as favorites
+- **Favorites**: Toggle to mark items as favorites
 - **Search**: Full-text search across content, platform, and tags
 - **Tags**: Add/remove custom tags to organize content
 - **Detail view**: Click any item to open a modal with full content, copy, delete, or edit tags
 - **Archive**: Soft-delete items by archiving them
-
-### Keyboard Shortcuts in Library
-
-None currently (the page is mouse-driven).
 
 ---
 
@@ -299,20 +262,19 @@ Navigate to `/app/publish`.
 The system automatically picks the best available provider:
 
 ```
-1. DeepSeek (if DEEPSEEK_API_KEY set)
-2. OpenAI (if OPENAI_API_KEY set)
-3. Ollama (if OLLAMA_BASE_URL set, or localhost:11434)
+1. Ollama (if running locally — free)
+2. DeepSeek (if DEEPSEEK_API_KEY set)
+3. OpenAI (if OPENAI_API_KEY set)
 ```
 
-You can force a provider by setting `LLM_PROVIDER=deepseek` or `LLM_PROVIDER=openai` in `.env`. If you set it to `ollama`, it will always use Ollama.
+You can force a provider by setting `LLM_PROVIDER=ollama` or `LLM_PROVIDER=deepseek` in `.env`.
 
 ### Ollama Setup (Free Local AI)
 
-1. Install Ollama from https://ollama.com
-2. Pull a model: `ollama pull llama3.1:8b`
-3. Start Ollama: `ollama serve` (or let it run in background)
-4. Set `OLLAMA_BASE_URL=http://localhost:11434` in `.env`
-5. MINT will automatically use Ollama as the fallback
+1. Ollama is already installed
+2. Model `llama3.2` is already pulled
+3. Set `OLLAMA_BASE_URL=http://localhost:11434` in `.env`
+4. MINT will automatically use Ollama as the primary provider
 
 ### Circuit Breaker
 
@@ -322,44 +284,33 @@ Each AI provider has a circuit breaker:
 - If the fallback also fails, you get an error
 - Check the Dashboard to see circuit breaker status
 
-### Content Moderation
-
-All generated text is scanned for:
-- Hate speech, threats, harassment
-- Self-harm, sexual content
-- Violence, illegal content
-
-Flagged content is rejected with a 400 error and not logged to cost tracking.
-
 ---
 
 ## Media Generation (Images, Voice, Video)
 
-### Voiceover (TTS)
-
-- **Requires**: No external setup (uses Edge TTS by default)
-- **How**: Generate a YouTube script → click "Generate Voiceover"
-- **Output**: MP3 audio played in-browser
-- **Voice**: Default is `en-US-JennyNeural` (female). You can configure via `voice` parameter in API.
-- **Cost**: FREE (Edge TTS is a free Microsoft service)
-
-### Video Generation (MoneyPrinterTurbo)
-
-- **Requires**: MoneyPrinterTurbo running locally (Docker)
-- **How**: Generate a YouTube script → click "Generate Short Video"
-- **What it does**: Auto-assembles stock footage, voiceover, subtitles, and background music
-- **Output**: Video URL (streamed from MPT)
-- **Timeout**: 5 minutes max
-- **Setup**: `MONEY_PRINTER_URL=http://localhost:8501` in `.env`
-
 ### Image Generation (ComfyUI)
 
-- **Requires**: ComfyUI running locally with a Stable Diffusion workflow
-- **How**: The backend API `/studio/generate-image` exists, but **there is no UI button in the Studio** to generate images from content yet. You can use the API directly or build a custom UI.
+- **Requires**: ComfyUI running locally with SD 1.5 model
+- **How**: The backend API `/studio/generate-image` exists
 - **Endpoint**: `POST /api/studio/generate-image` with `{ prompt: "your image prompt" }`
 - **Output**: Image URL from ComfyUI
 - **Setup**: `COMFYUI_BASE_URL=http://localhost:8188` in `.env`
-- **Note**: ComfyUI needs a workflow JSON. MINT uses a simple prompt-based workflow by default, or you can pass a custom `workflow` object.
+
+### Voiceover (TTS)
+
+- **Requires**: Piper TTS installed
+- **How**: Generate a YouTube script → click "Generate Voiceover"
+- **Output**: MP3 audio played in-browser
+- **Voice**: Default is `en_US-amy-medium` (female)
+- **Cost**: FREE (Piper TTS runs locally, offline)
+
+### Video Generation (MoneyPrinterTurbo)
+
+- **Requires**: MoneyPrinterTurbo running locally
+- **How**: Generate a YouTube script → click "Generate Short Video"
+- **What it does**: Auto-assembles stock footage, voiceover, subtitles, and background music
+- **Output**: Video URL (streamed from MPT)
+- **Setup**: `MONEY_PRINTER_BASE_URL=http://localhost:8501` in `.env`
 
 ---
 
@@ -371,23 +322,9 @@ Flagged content is rejected with a 400 error and not logged to cost tracking.
 - **Restore data**: `POST /api/restore` with the exported JSON
 - **Export formats per item**: Markdown, JSON, .txt, .md
 
-### Cost Tracking
-
-All AI calls are tracked in `logs/ai_usage.jsonl`:
-
-- Provider used (deepseek, openai, ollama)
-- Model name
-- Token count (estimated)
-- Duration
-- Success/failure status
-- Content type (script, caption, etc.)
-- Error messages (if any)
-
-Cost estimates are approximate: ~1 token per 4 characters. Not accurate for non-English text.
-
 ### Database
 
-PostgreSQL stores:
+SQLite stores:
 - Users (single user for personal use)
 - Content projects
 - Generated posts (with tags, favorites, status)
@@ -396,23 +333,12 @@ PostgreSQL stores:
 
 ---
 
-## Mobile Usage
-
-MINT is responsive and works on mobile:
-
-- **Hamburger menu** (☰) on mobile opens the sidebar navigation
-- **Overlay backdrop**: tap outside the sidebar to close it
-- **Stacked layouts**: forms and grids stack vertically on small screens
-- **Touch-friendly**: buttons are large enough for tap targets
-
----
-
 ## Troubleshooting
 
 ### "AI provider not available" error
 
-- Check that `DEEPSEEK_API_KEY` or `OPENAI_API_KEY` is set in `.env`
-- Or install Ollama and set `OLLAMA_BASE_URL`
+- Check that Ollama is running: `ollama list`
+- Start Ollama: `ollama serve`
 - Check the Dashboard for circuit breaker status (might be "open" after failures)
 
 ### "ComfyUI not configured" error
@@ -420,25 +346,14 @@ MINT is responsive and works on mobile:
 - Set `COMFYUI_BASE_URL` in `.env` and start ComfyUI
 - Or ignore — image generation is not exposed in the UI yet
 
-### "Video generation timed out"
-
-- MoneyPrinterTurbo may be slow. Check if the container is running.
-- The video might still be processing — check the status endpoint.
-
 ### Database connection errors
 
-- Ensure PostgreSQL is running
-- Check `DATABASE_URL` in `.env`
-- Run `npm run db:migrate` to apply migrations
-
-### Magic link not received
-
-- In development, the magic link is printed to the **backend console** (not emailed)
-- Check the terminal where `npm run backend:dev` is running
+- Ensure the backend can write to `backend/prisma/mint.db`
+- Check `DATABASE_URL` in `backend/prisma/.env`
 
 ### Theme not persisting
 
-- Fixed in Sprint 6 — theme is now saved to `localStorage` as `mint-theme-preference`
+- Theme is saved to `localStorage` as `mint-theme-preference`
 - Also respects system `prefers-color-scheme: dark`
 
 ---
@@ -447,14 +362,14 @@ MINT is responsive and works on mobile:
 
 1. **No real email sending** in development — magic links are console-only
 2. **Single user only** — no multi-user support, no role management
-3. **Cost estimates are approximate** — token counts are `characterCount / 4`, not accurate for non-English
+3. **Cost estimates are approximate** — token counts are `characterCount / 4`
 4. **Image generation has no UI button** — API exists but no Studio button to trigger it from content
 5. **No real publish integration** — Publish page is a queue/status tracker, not connected to YouTube/TikTok/Instagram APIs
 6. **No content editor** — Generated content is read-only; you must copy and edit externally
 7. **No batch operations** — Library items must be managed one by one
 8. **No undo** — Delete and archive actions are immediate
 9. **Voiceover is YouTube-script-only** — Other content types don't have a voiceover button
-10. **Video generation requires MoneyPrinterTurbo** — A separate Docker service, not bundled with MINT
+10. **Video generation requires MoneyPrinterTurbo** — A separate service, not bundled with MINT
 11. **No offline mode** — AI generation requires internet (or local Ollama)
 12. **Auth is dev-only** — No password login, no 2FA, no OAuth
 
@@ -466,9 +381,11 @@ MINT is responsive and works on mobile:
 |------|-------|
 | Source code | `frontend/src/` and `backend/src/` |
 | Database schema | `backend/prisma/schema.prisma` |
+| Database file | `backend/prisma/mint.db` |
 | Environment config | `backend/.env` and `frontend/.env` |
-| AI logs | `logs/ai_usage.jsonl` |
-| Cost stats | `logs/ai_usage.jsonl` (calculated on read) |
+| ComfyUI models | `D:\AgentDevWork\Programs\comfyui\ComfyUI\models\` |
+| Piper TTS voices | `D:\AgentDevWork\Programs\piper-tts\voices\` |
+| Ollama models | `C:\Users\AgentDev\.ollama\models\` |
 | Drafts | `localStorage` in browser (auto-saved) |
 | Theme preference | `localStorage` key `mint-theme-preference` |
 
@@ -478,18 +395,17 @@ MINT is responsive and works on mobile:
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev:all` | Start both backend + frontend (dev) |
-| `npm run backend:dev` | Backend only (hot reload) |
-| `npm run dev` | Frontend only (Vite) |
+| `start-mint.bat` | Start all services |
+| `npm run dev` | Frontend only (Vite, :5173) |
+| `npm run backend:dev` | Backend only (tsx, :4000) |
+| `npm run dev:all` | Both backend + frontend |
 | `npm run build` | Build frontend for production |
 | `npm run backend:build` | Build backend for production |
-| `npm run db:migrate` | Run database migrations |
-| `npm run db:seed` | Seed database with sample data |
+| `npm run db:generate` | Run Prisma migrations |
 | `npm run db:studio` | Open Prisma Studio (database GUI) |
 | `npm run test` | Run test suite (Vitest) |
 | `npm run lint` | ESLint check |
 | `npm run format` | Prettier format all files |
-| `docker-compose up` | Start full stack with Docker |
 
 ---
 

@@ -35,3 +35,5 @@
 | 25 | Sprint 3: Reliability + DevEx | DONE | Structured logging, circuit breaker, offline indicator, tests, one-command startup, documentation |
 | 26 | Sprint 4: Personal workflow features | DONE | Tags, search, favorites, templates, dashboard, auto-save drafts |
 | 27 | Sprint 5: Final polish | DONE | Performance (lazy loading), animations (Framer Motion), data export, README |
+| 28 | Install local AI services | DONE | ComfyUI, Piper TTS, configure Ollama, create start-mint.bat |
+| 29 | Update documentation | DONE | README, ARCHITECTURE, AGENTS, GETTING_STARTED, AI_PROVIDERS, GROUND_TRUTH, TODO |

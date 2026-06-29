@@ -1,16 +1,48 @@
 # AI Provider Configuration
 
-MINT supports multiple AI providers with automatic fallback.
+MINT supports multiple AI providers with automatic fallback. Local services are prioritized — no cloud API keys required for basic usage.
 
 ## Provider Chain
 
 ```
-DeepSeek (if configured) → OpenAI (if configured) → Ollama (local)
+Ollama (primary, local, free) → DeepSeek (if configured) → OpenAI (if configured)
 ```
 
 The system tries providers in order. If one fails, it falls back to the next.
 
-## DeepSeek
+## Ollama (Primary — Free, Local)
+
+**Cost:** Free (runs locally)
+
+### Setup
+
+1. Install Ollama: https://ollama.ai
+2. Pull a model:
+   ```bash
+   ollama pull llama3.2        # 2GB, fits 6GB VRAM
+   ollama pull llama3.2:3b     # Smaller, faster
+   ollama pull gemma4          # Larger, more capable
+   ```
+3. Add to `backend/.env`:
+   ```env
+   LLM_PROVIDER=ollama
+   OLLAMA_BASE_URL=http://localhost:11434
+   ```
+
+### Recommended Models
+
+| Model | Size | VRAM | Speed | Quality |
+|-------|------|------|-------|---------|
+| `llama3.2` | 2GB | 2GB | Fast | Good |
+| `llama3.2:3b` | 2GB | 2GB | Faster | OK |
+| `gemma4` | 9.6GB | 6GB+ | Slow | Best |
+
+### Already Installed
+
+- Ollama v0.30.11
+- Models: `llama3.2`, `gemma4`, `llama3.2:3b`
+
+## DeepSeek (Optional, Cloud)
 
 **Cost:** ~$0.001/1K tokens (cheapest cloud option)
 
@@ -21,17 +53,16 @@ The system tries providers in order. If one fails, it falls back to the next.
 3. Add to `backend/.env`:
    ```env
    DEEPSEEK_API_KEY=your-api-key
-   DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
    ```
 
 ### Models
 
-- `deepseek-chat` (default) - General purpose
-- `deepseek-coder` - Code-focused
+- `deepseek-chat` (default) — General purpose
+- `deepseek-coder` — Code-focused
 
-## OpenAI
+## OpenAI (Optional, Cloud)
 
-**Cost:** ~$0.005/1K tokens (GPT-4o) or ~$0.00015/1K tokens (GPT-4o-mini)
+**Cost:** ~$0.00015/1K tokens (GPT-4o-mini)
 
 ### Setup
 
@@ -40,36 +71,12 @@ The system tries providers in order. If one fails, it falls back to the next.
 3. Add to `backend/.env`:
    ```env
    OPENAI_API_KEY=your-api-key
-   OPENAI_BASE_URL=https://api.openai.com/v1
    ```
 
 ### Models
 
-- `gpt-4o-mini` (default) - Fast and cheap
-- `gpt-4o` - Most capable
-
-## Ollama (Free)
-
-**Cost:** Free (runs locally)
-
-### Setup
-
-1. Install Ollama: https://ollama.ai
-2. Pull a model:
-   ```bash
-   ollama pull llama3.1:8b
-   ```
-3. Add to `backend/.env`:
-   ```env
-   OLLAMA_BASE_URL=http://localhost:11434
-   OLLAMA_MODEL=llama3.1:8b
-   ```
-
-### Recommended Models
-
-- `llama3.1:8b` - Good balance of speed and quality
-- `llama3.1:70b` - Best quality (requires 64GB+ RAM)
-- `mistral` - Fast and capable
+- `gpt-4o-mini` (default) — Fast and cheap
+- `gpt-4o` — Most capable
 
 ## Image Generation (ComfyUI)
 
@@ -77,11 +84,33 @@ The system tries providers in order. If one fails, it falls back to the next.
 
 ### Setup
 
-1. Install ComfyUI: https://github.com/comfyanonymous/ComfyUI
-2. Start ComfyUI server
+1. ComfyUI is installed at `D:\AgentDevWork\Programs\comfyui\`
+2. SD 1.5 model is downloaded (~4GB)
 3. Add to `backend/.env`:
    ```env
+   IMAGE_PROVIDER=stable-diffusion
    COMFYUI_BASE_URL=http://localhost:8188
+   ```
+
+### Requirements
+
+- NVIDIA GPU with 6GB+ VRAM
+- PyTorch with CUDA 12.4
+- SD 1.5 model (~4GB)
+
+## Text-to-Speech (Piper TTS)
+
+**Cost:** Free (runs locally, offline)
+
+### Setup
+
+1. Piper TTS is installed at `D:\AgentDevWork\Programs\piper-tts\`
+2. Voice model: `en_US-amy-medium` (~50MB)
+3. Add to `backend/.env`:
+   ```env
+   TTS_PROVIDER=piper
+   PIPER_EXECUTABLE=D:\AgentDevWork\Programs\piper-tts\piper.exe
+   PIPER_VOICE_DIR=D:\AgentDevWork\Programs\piper-tts\voices
    ```
 
 ## Cost Comparison
@@ -105,20 +134,24 @@ If the primary provider fails:
 
 ```env
 # Provider Selection
-LLM_PROVIDER=deepseek  # Options: deepseek, openai
+LLM_PROVIDER=ollama           # Options: ollama, deepseek, openai
 
-# DeepSeek
-DEEPSEEK_API_KEY=
-DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
-
-# OpenAI
-OPENAI_API_KEY=
-OPENAI_BASE_URL=https://api.openai.com/v1
-
-# Ollama
+# Ollama (primary)
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.1:8b
+OLLAMA_MODEL=llama3.2
 
-# ComfyUI (Image Generation)
+# DeepSeek (optional)
+DEEPSEEK_API_KEY=
+
+# OpenAI (optional)
+OPENAI_API_KEY=
+
+# Image Generation
+IMAGE_PROVIDER=stable-diffusion
 COMFYUI_BASE_URL=http://localhost:8188
+
+# Text-to-Speech
+TTS_PROVIDER=piper
+PIPER_EXECUTABLE=D:\AgentDevWork\Programs\piper-tts\piper.exe
+PIPER_VOICE_DIR=D:\AgentDevWork\Programs\piper-tts\voices
 ```

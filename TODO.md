@@ -24,7 +24,7 @@ All 5 phases are implemented and functional.
 - [x] Long-form video support via Remotion (scaffold)
 
 ### Phase 3: Additional Integrations (✅ DONE)
-- [x] Coqui TTS for local voiceover alternative (via Whisper)
+- [x] Piper TTS for local voiceover alternative
 - [x] FFmpeg-based video assembly (assembly.service.ts)
 - [x] Stock footage via Pexels API (pexels.service.ts)
 - [x] Whisper for transcription (whisper.service.ts)
@@ -45,6 +45,14 @@ All 5 phases are implemented and functional.
 - [x] Usage analytics (scaffold)
 - [x] Tests (Vitest configured)
 
+### Phase 6: Local AI Services (✅ DONE)
+- [x] Install Ollama with llama3.2 model
+- [x] Install ComfyUI with SD 1.5 model
+- [x] Install Piper TTS with voice model
+- [x] Configure backend for local services
+- [x] Create start-mint.bat launcher script
+- [x] Update documentation
+
 ### Phase ∞: Polish (⏳ FUTURE)
 - [ ] Real SMTP email sending for auth
 - [ ] YouTube Data API integration
@@ -52,6 +60,8 @@ All 5 phases are implemented and functional.
 - [ ] Content calendar
 - [ ] Batch generation
 - [ ] Export (MP4, MP3, SRT, TXT)
+- [ ] Brave Search API for web research
+- [ ] Money Printer Turbo integration
 
 ## Done ✅
 - [x] Both PRs merged (kimi/security-backend + kilo/frontend-fixes)
@@ -69,3 +79,5 @@ All 5 phases are implemented and functional.
 - [x] Railway PostgreSQL provisioned + Prisma migrated
 - [x] All Prisma service-layer bugs fixed (field name mismatches)
 - [x] Wire Projects/Library/Publish routes to Prisma services
+- [x] Install ComfyUI, Piper TTS, configure Ollama
+- [x] Create start-mint.bat launcher script

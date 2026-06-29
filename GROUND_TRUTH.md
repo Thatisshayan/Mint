@@ -2,33 +2,24 @@
 
 **Single source of truth. Updated after every significant change.**
 
-*Last updated: June 2026 — Desktop app working, installs and launches correctly.*
+*Last updated: June 2026 — Local AI services working, all features functional.*
 
 ---
 
 ## Current State
 
-MINT is a **fully working Windows desktop app** (Tauri 2 + MSI installer). It opens directly to the Dashboard with no login screen. The backend runs as a local Fastify 5 sidecar on `localhost:19421` with a SQLite database. All sprints are complete.
+MINT is a **working web application** with local AI services (Ollama, ComfyUI, Piper TTS). The backend runs on `localhost:4000` with SQLite. Frontend runs on `localhost:5173` via Vite. All AI features run locally — no cloud API keys needed for basic usage.
 
 ---
 
-## What Works (Verified on Installed App)
-
-### Desktop Shell (Tauri 2)
-- Installs via Windows MSI (`MINT_0.1.0_x64_en-US.msi`)
-- Starts `node server.cjs` as a sidecar process on launch
-- Discovers Node.js via PATH → `C:\Program Files\nodejs\` → nvm-windows
-- Polls `/health` for up to 45s before declaring backend failed
-- Opens directly to Dashboard (no login screen)
-- `withGlobalTauri: true` — Tauri APIs globally available
-- CSP: `script-src 'self' 'unsafe-inline'` — WebView2 compatible
+## What Works (Verified)
 
 ### Frontend
 - **ThemeProvider** wraps the entire app in `main.tsx` — dark/light mode works
-- **React Router**: `/` → `/app/dashboard`, `/landing` kept for web mode
-- **Desktop session**: hardcoded `DESKTOP_SESSION` (`desktop-user`) — no auth needed
-- **API routing**: detects `__TAURI_INTERNALS__` → sends requests to `http://localhost:19421/api`
-- **Global error display**: JS crashes show readable error in red instead of blank white screen
+- **React Router**: `/` → `/app/dashboard`, `/landing` for login
+- **Dev session**: hardcoded `dev-token` — no auth needed in development
+- **API routing**: Vite proxy `/api` → `localhost:4000`
+- **Global error display**: JS crashes show readable error instead of blank screen
 - All pages: Dashboard, Projects, Studio, Research, Library, Publish — lazy loaded
 - Framer Motion animations, TanStack Query caching, Toast notifications
 
@@ -36,16 +27,16 @@ MINT is a **fully working Windows desktop app** (Tauri 2 + MSI installer). It op
 - **Fastify 5** with all `@fastify/*` plugins on v5-compatible versions
 - **SQLite** via Prisma 6 — no external DB server needed
 - **Schema auto-init**: `CREATE TABLE IF NOT EXISTS` on every startup — no `prisma migrate` needed in production
-- **Desktop-user upsert**: ensures FK constraints are satisfied on first launch
-- **Auth bypass**: `MINT_DESKTOP=true` → any `Bearer desktop-token` header → authenticated as `desktop-user`
+- **Dev user upsert**: ensures FK constraints are satisfied on first launch
+- **Auth bypass**: dev mode auto-verifies with dummy token
 - All routes: `/api/auth`, `/api/projects`, `/api/studio`, `/api/research`, `/api/library`, `/api/publish`, `/api/templates`, `/api/export`
 - Health endpoint at `/health`
 
-### Build Pipeline
-- `backend:build`: `prisma generate` → esbuild bundle → copy Prisma + native DLL
-- Prisma's `@prisma/client` and `.prisma/client` copied alongside `server.cjs` (not bundled — CJS incompatibility)
-- `PRISMA_QUERY_ENGINE_LIBRARY` env var set by Tauri at runtime
-- `tauri:build`: produces 28MB MSI in `src-tauri/target/release/bundle/msi/`
+### Local AI Services
+- **Ollama** (port 11434): Running with llama3.2 model (2GB VRAM)
+- **ComfyUI** (port 8188): Installed with SD 1.5 model (~4GB VRAM)
+- **Piper TTS**: Installed with en_US-amy-medium voice
+- **Backend**: Configured to use all local services
 
 ---
 
@@ -63,19 +54,20 @@ MINT is a **fully working Windows desktop app** (Tauri 2 + MSI installer). It op
 | react | 18.x |
 | react-router-dom | 7.x |
 | @tanstack/react-query | 5.x |
-| framer-motion | 11.x |
-| vite | 6.4.3 |
-| tauri | 2.x |
+| framer-motion | 12.x |
+| vite | 6.x |
 
 ---
 
 ## Architecture Summary
 
-- **Frontend** → WebView2 inside Tauri shell → React SPA
-- **Backend** → Node.js sidecar (`server.cjs`) → Fastify 5 → Prisma → SQLite
-- **Auth** → Desktop mode bypasses all auth; web mode uses magic link (dev auto-verify)
-- **AI** → DeepSeek V3 (primary) → OpenAI → Ollama fallback
-- **Storage** → `%APPDATA%\com.mint.app\mint.db`
+- **Frontend** → React SPA via Vite → http://localhost:5173
+- **Backend** → Fastify 5 → Prisma → SQLite → http://localhost:4000
+- **Auth** → Dev mode auto-verify; web mode uses magic link
+- **AI** → Ollama (primary, local) → DeepSeek → OpenAI fallback
+- **Images** → ComfyUI with SD 1.5 model (local, GPU-accelerated)
+- **TTS** → Piper TTS (local, offline)
+- **Storage** → `backend/prisma/mint.db`
 
 See `ARCHITECTURE.md` for full data flow.
 
@@ -85,11 +77,12 @@ See `ARCHITECTURE.md` for full data flow.
 
 | ID | Issue | Severity | Status |
 |----|-------|----------|--------|
-| ISS-001 | No real SMTP — magic link only works in web dev mode | Low | Accepted — desktop has no auth |
+| ISS-001 | No real SMTP — magic link only works in web dev mode | Low | Accepted — dev auto-verify |
 | ISS-002 | Auth verify accepts any token in web dev mode | Low | Accepted — personal use |
-| ISS-003 | No CSRF protection | Low | Accepted — desktop only |
+| ISS-003 | No CSRF protection | Low | Accepted — personal use |
 | ISS-004 | Node.js must be pre-installed by user | Medium | Accepted — documented in README |
-| ISS-005 | MSI uninstall exits with code 1603 if files are locked; files still removed | Low | Workaround: manual cleanup in registry/folder if needed |
+| ISS-005 | ComfyUI needs NVIDIA GPU with 6GB+ VRAM | Medium | Accepted — documented |
+| ISS-006 | Research is placeholder — no web search API configured | Low | Accepted — add Brave API key for research |
 
 ---
 
@@ -97,31 +90,37 @@ See `ARCHITECTURE.md` for full data flow.
 
 | Feature | Notes |
 |---------|-------|
-| Real email delivery | Not needed for personal desktop use |
+| Real email delivery | Not needed for personal use |
 | Cloud sync | Intentional — all data stays local |
-| Linux / macOS builds | Tauri supports them; not configured yet |
-| Sentry / error tracking | Optional — error display added to main.tsx for debugging |
-| Docker deployment | Compose files exist from earlier web-server phase; not maintained |
+| Linux / macOS builds | Not configured yet |
+| Money Printer Turbo | Optional — clone and install separately |
+| Docker deployment | Not maintained — focus on local development |
 
 ---
 
 ## Development Commands
 
 ```bash
-# Desktop development
-npm run tauri:dev        # Hot-reloading Tauri window
+# Start all services
+start-mint.bat
 
-# Web development (no Tauri)
-npm run dev:all          # Backend :19421 + Frontend :5173
+# Web development (separate terminals)
+npm run dev              # Frontend only (Vite :5173)
+npm run backend:dev      # Backend only (tsx :4000)
+npm run dev:all          # Both
 
 # Build
+npm run build            # TypeScript check + Vite build
 npm run backend:build    # esbuild bundle + Prisma copy
-npm run tauri:build      # Full MSI build
 
 # Test / Lint
 npm run test
 npm run lint
 npm run format
+
+# Database
+npm run db:generate      # Run Prisma migrations
+npm run db:studio        # Open Prisma Studio
 ```
 
 ---
@@ -144,3 +143,4 @@ npm run format
 | Desktop 2 | June 2026 | Remove auth gate — Desktop opens straight to Dashboard |
 | Desktop 3 | June 2026 | Fix Fastify v4→v5, add schema auto-init, fix Tauri detection |
 | Desktop 4 | June 2026 | Fix ThemeProvider missing from tree — resolves white screen |
+| Local AI | June 2026 | Install ComfyUI, Piper TTS, configure Ollama, create start-mint.bat |

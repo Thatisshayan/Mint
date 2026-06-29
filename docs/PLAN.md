@@ -1,39 +1,50 @@
 # MINT Delivery Plan
 
-Goal: make MINT a working personal product for faceless YouTube / Instagram content, using zero-cost backend + local generation.
+Goal: make MINT a working personal product for faceless YouTube / Instagram content, using zero-cost local AI services.
 
 ## Zero-Cost Stack
-- Backend: Fastify + Prisma + SQLite
-- Frontend: React + Vite + Tailwind
-- Brain: Ollama local models
-- Media placeholder: ComfyUI hook (optional)
+- Backend: Fastify 5 + Prisma 6 + SQLite
+- Frontend: React 18 + Vite 6 + Tailwind CSS 3
+- Brain: Ollama local models (llama3.2, 2GB VRAM)
+- Images: ComfyUI with SD 1.5 model (local, GPU-accelerated)
+- Voice: Piper TTS (local, offline)
+- Video: MoneyPrinterTurbo (optional, separate install)
 - Export: markdown / JSON bundles
 
-## Current State (as of latest cleanup)
-- Remote repo hygiene done: stale Snyk PR closed, branch deleted
-- Backend routes fixed for ESM: all route files now export default plugins
-- Auth stubs added matching API contract (magic-link, verify, refresh, logout, me)
-- `/health` route + structured error handler implemented
-- API contract documented in `docs/API_CONTRACT.md`
-- Docker compose + Dockerfiles added for backend, frontend, postgres
-- Vitest config scaffold added for frontend test coverage
+## Current State (as of June 2026)
+- All core features working
+- Local AI services installed and configured
+- Backend starts on port 4000
+- Frontend starts on port 5173
+- Documentation updated
 
-## Backend Plan
-- Keep API routes under `/api`
-- Auth: dev stubs only (magic-link placeholder, JWT placeholder)
-- Storage: SQLite by default
-- Generation: Ollama hook (stub ready)
-- Research: Brave Search integration pending
+## What's Done
+- [x] Backend Fastify 5 with all routes
+- [x] Frontend React 18 with all pages
+- [x] SQLite database with Prisma 6
+- [x] Ollama integration (primary LLM)
+- [x] ComfyUI integration (image generation)
+- [x] Piper TTS integration (voiceover)
+- [x] MoneyPrinterTurbo integration (video generation)
+- [x] Auth (dev auto-verify)
+- [x] Dark/light mode
+- [x] Keyboard shortcuts
+- [x] Error handling
+- [x] Rate limiting
+- [x] start-mint.bat launcher
 
-## Frontend Plan
-- Studio page: topic in -> script / caption / thumbnail prompt out
-- Projects page: real list + create flow
-- Library page: saved drafts
-- Publish page: download / copy exports
+## What's Not Started
+- [ ] Real SMTP email sending for auth
+- [ ] YouTube Data API integration
+- [ ] Instagram Graph API integration
+- [ ] Content calendar
+- [ ] Batch generation
+- [ ] Brave Search API for web research
+- [ ] Money Printer Turbo setup
 
 ## Next Session Tasks
-1. Add frontend + backend test runner and sample tests
-2. Wire Ollama generation route (replace studio stub)
-3. Add Brave Search research route (replace research stub)
-4. Add seed data + Prisma migration verification
-5. Polish UI flows (Projects, Studio, Publish)
+1. Test all features end-to-end
+2. Fix any remaining bugs
+3. Add more keyboard shortcuts
+4. Improve error messages
+5. Add more content types

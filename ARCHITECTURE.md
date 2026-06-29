@@ -1,56 +1,39 @@
 # MINT Architecture
 
-**Desktop-first, no-cloud-required AI content workstation.**
+**Local-first, no-cloud-required AI content workstation.**
 
 ## Overview
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                   Tauri 2 Shell                     │
-│  (Rust process — manages window, IPC, app lifecycle) │
+│                  Browser (React SPA)                 │
+│                  http://localhost:5173               │
 │                                                     │
 │  ┌─────────────┐       ┌──────────────────────────┐ │
-│  │  WebView2   │  IPC  │  Sidecar: node server.cjs│ │
-│  │  (frontend) │◄─────►│  Fastify 5 on :19421     │ │
-│  │  React SPA  │       │  Prisma → SQLite          │ │
+│  │   Vite      │ proxy │  Fastify 5 on :4000      │ │
+│  │   Frontend  │──────►│  Prisma → SQLite          │ │
 │  └─────────────┘       └──────────────────────────┘ │
 └─────────────────────────────────────────────────────┘
          │ HTTP fetch                │ file I/O
-         │ http://localhost:19421    │
+         │ http://localhost:4000     │
          ▼                           ▼
-   External AI APIs           %APPDATA%\com.mint.app\
-   (DeepSeek / OpenAI)        mint.db (SQLite)
+   Local AI Services           backend/prisma/mint.db
+   (Ollama, ComfyUI, Piper)
 ```
 
 ## Runtime Modes
 
 | Mode | Frontend URL | Backend | Auth |
 |------|-------------|---------|------|
-| **Desktop (Tauri)** | `tauri://localhost` | `localhost:19421` (sidecar) | Bypassed — hardcoded `desktop-user` |
-| **Web dev** | `http://localhost:5173` | `http://localhost:19421` | Magic link (dev auto-verify) |
-
-## Desktop Startup Sequence
-
-```
-1. Tauri launches
-2. Rust: find_node() — searches PATH, C:\Program Files\nodejs\, nvm-windows
-3. Rust: spawn node.exe server.cjs as a child process
-   - MINT_DESKTOP=true
-   - PORT=19421
-   - PRISMA_QUERY_ENGINE_LIBRARY=<resources>/node_modules/.prisma/client/query_engine-windows.dll.node
-4. Rust: poll http://localhost:19421/health every 500ms (up to 45s)
-5. WebView2 loads tauri://localhost (bundled frontend assets)
-6. Frontend: detects window.__TAURI_INTERNALS__ → desktop mode
-7. Frontend: skips auth → renders Dashboard directly
-```
+| **Web dev** | `http://localhost:5173` | `http://localhost:4000` | Magic link (dev auto-verify) |
 
 ## Backend (Fastify 5)
 
 ### Entry Point
-`backend/src/index.ts` → bundled to `backend/dist/server.cjs` via esbuild
+`backend/src/index.ts` → runs via tsx (TypeScript execution)
 
 ### Startup
-On first launch, `start()` runs `CREATE TABLE IF NOT EXISTS` for all models (no `prisma migrate` needed in bundled mode), then upserts the `desktop-user` row.
+On first launch, `start()` runs `CREATE TABLE IF NOT EXISTS` for all models (no `prisma migrate` needed), then ensures the dev user exists.
 
 ### Routes
 
@@ -68,9 +51,7 @@ On first launch, `start()` runs `CREATE TABLE IF NOT EXISTS` for all models (no 
 
 ### Auth Middleware
 
-Desktop mode (`MINT_DESKTOP=true`): any request with `Authorization: Bearer desktop-token` is auto-authenticated as `desktop-user` — no JWT verification.
-
-Web mode: standard `@fastify/jwt` verification.
+Web mode: standard `@fastify/jwt` verification. Dev mode auto-verifies with dummy token.
 
 ### Database
 
@@ -78,19 +59,28 @@ SQLite via Prisma 6. Schema: `backend/prisma/schema.prisma`.
 
 Models: `User`, `ContentProject`, `GeneratedPost`, `ResearchReport`, `Template`, `MagicLinkToken`
 
-DB file location (desktop): `%APPDATA%\com.mint.app\mint.db`
+DB file location: `backend/prisma/mint.db`
 
 ### AI Provider Chain
 
 ```
-Request → DeepSeek V3 (primary, cheapest)
+Request → Ollama (primary, local, free)
+            ↓ fails / not running
+          DeepSeek V3 (if API key configured)
             ↓ fails / no key
-          OpenAI gpt-4o-mini
-            ↓ fails / no key
-          Ollama (local — llama3.1:8b or similar)
+          OpenAI gpt-4o-mini (if API key configured)
 ```
 
 Circuit breaker: opens after 3 consecutive failures, recovers after 60s.
+
+### Local Services
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| **Ollama** | http://localhost:11434 | LLM text generation (llama3.2) |
+| **ComfyUI** | http://localhost:8188 | Image generation (SD 1.5) |
+| **Piper TTS** | Local binary | Text-to-speech |
+| **Money Printer Turbo** | http://localhost:8501 | Video generation (optional) |
 
 ## Frontend (React 18 + Vite 6)
 
@@ -112,7 +102,7 @@ Circuit breaker: opens after 3 consecutive failures, recovers after 60s.
 
 ```
 /                   → redirect to /app/dashboard
-/landing            → magic link login (web mode only)
+/landing            → magic link login (web mode)
 /app/*              → AppLayout (sidebar + theme)
   /app/dashboard    → Dashboard (stats, quick actions)
   /app/projects     → Projects (CRUD)
@@ -123,66 +113,48 @@ Circuit breaker: opens after 3 consecutive failures, recovers after 60s.
   *                 → NotFound
 ```
 
-### Desktop Detection
+### Session
 
 ```ts
-const isDesktop = () =>
-  typeof window !== 'undefined' &&
-  ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
-```
-
-Used in: `fetchWrapper.ts` (API base URL), `useSession.ts` (skip auth), `auth.ts` (return DESKTOP_SESSION).
-
-### Session (Desktop)
-
-```ts
+// Dev auto-verify with dummy token
 const DESKTOP_SESSION = {
-  user: { id: 'desktop-user', email: 'user@mint.local', name: 'You' },
-  accessToken: 'desktop-token',
+  user: { id: 'dev-user', email: 'user@mint.local', name: 'You' },
+  accessToken: 'dev-token',
   expiresAt: <1 year from now>,
 };
 ```
-
-No localStorage reads. `signOut()` is a no-op.
 
 ### API Base URL
 
 | Mode | Base URL |
 |------|---------|
-| Desktop | `http://localhost:19421/api` |
 | Web dev (via Vite proxy) | `/api` |
-| `VITE_API_URL` env set | that value |
+| `VITE_API_URL` env set | that value (default: `http://localhost:4000/api`) |
 
 ## Build Pipeline
 
-### `npm run tauri:build` triggers:
+### Development
 
-```
-1. beforeBuildCommand:
-   a. prisma generate --schema backend/prisma/schema.prisma
-   b. node backend/bundle.mjs
-      - esbuild: backend/src/index.ts → backend/dist/server.cjs
-      - Copy @prisma/client → backend/dist/@prisma/client (skip wasm)
-      - Copy .prisma/client → backend/dist/.prisma/client (includes query_engine-windows.dll.node)
-   c. tsc -b && vite build → frontend/dist/
-
-2. Tauri bundles:
-   - frontend/dist/ → WebView2 assets
-   - backend/dist/ → resources/backend/dist/ (inside MSI)
-   - Windows MSI → src-tauri/target/release/bundle/msi/
+```bash
+npm run dev            # Frontend only (Vite :5173)
+npm run backend:dev    # Backend only (tsx :4000)
+npm run dev:all        # Both (concurrently)
+start-mint.bat         # All services (Ollama, ComfyUI, Backend, Frontend)
 ```
 
-### Prisma in Bundled Mode
+### Production
 
-`@prisma/client` is marked external in esbuild (CJS incompatibility). The generated client and native query engine DLL are copied alongside `server.cjs`. `PRISMA_QUERY_ENGINE_LIBRARY` env var points to the DLL at runtime.
+```bash
+npm run build          # TypeScript check + Vite build
+npm run backend:build  # esbuild bundle + Prisma copy
+```
 
 ## Security
 
-- **CSP**: `default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:* https:; ...`
-- **Helmet**: active, CSP disabled (managed by Tauri)
-- **CORS**: desktop mode allows `localhost:*` only
-- **Rate limiting**: disabled in desktop mode
-- **JWT**: not used in desktop mode (replaced by hardcoded session)
+- **Helmet**: active, CSP disabled (dev mode)
+- **CORS**: allows localhost only in development
+- **Rate limiting**: 100 req/min general API
+- **JWT**: not used in dev mode (auto-verify with dummy token)
 
 ## File Layout
 
@@ -198,18 +170,17 @@ MINT/
 │   │   ├── ThemeProvider.tsx ← Dark/light context
 │   │   └── ...
 │   ├── hooks/
-│   │   ├── useSession.ts     ← Auth state (desktop bypasses auth)
+│   │   ├── useSession.ts     ← Auth state (dev bypasses auth)
 │   │   └── useTheme.ts       ← Theme context consumer
 │   ├── lib/api/
-│   │   ├── fetchWrapper.ts   ← HTTP client + desktop URL routing
+│   │   ├── fetchWrapper.ts   ← HTTP client
 │   │   └── auth.ts           ← Session API + DESKTOP_SESSION
 │   └── pages/                ← Dashboard, Studio, Projects, ...
 ├── backend/
 │   ├── src/index.ts          ← Fastify app, schema init, buildApp()
-│   ├── bundle.mjs            ← esbuild + Prisma copy script
-│   ├── dist/                 ← Built output (server.cjs + Prisma)
+│   ├── src/routes/           ← API route handlers
+│   ├── src/services/         ← Business logic (AI, media, etc.)
 │   └── prisma/schema.prisma  ← SQLite schema
-└── src-tauri/
-    ├── src/lib.rs            ← find_node(), start_backend(), wait_for_backend()
-    └── tauri.conf.json       ← withGlobalTauri, CSP, bundle resources
+├── start-mint.bat            ← Master launcher script
+└── .env                      ← Root env (DATABASE_URL for Prisma)
 ```

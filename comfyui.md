@@ -1,16 +1,18 @@
-# Notes for the build
+# ComfyUI Integration Notes
 
-- The local ComfyUI integration is now scaffolded, but not wired into any UI yet.
-- Frontend Route guard now watches `initializing` so it does not flash the shell before `/me` finishes.
-- ApolloClient introspection disabled on the client (`INAPOLLO_CLIENT_INTROSPECTION=disallowed`).
-- Default export fix in `src/api/gql/useGetApp.ts` was applied so the hook has the expected default shape.
+## Current Status
 
-## ComfyUI provider API
+- ComfyUI is installed at `D:\AgentDevWork\Programs\comfyui\ComfyUI`
+- Python venv created at `D:\AgentDevWork\Programs\comfyui\venv`
+- PyTorch with CUDA 12.4 installed
+- SD 1.5 model downloaded (~4GB)
+- Backend configured to use ComfyUI on port 8188
+
+## ComfyUI Provider API
 
 Files:
-- `backend/src/lib/media/comfyui.ts`
-- `backend/src/lib/media/index.ts`
-- `backend/src/lib/media/types.ts`
+- `backend/src/services/ai/comfyui.service.ts`
+- `backend/src/services/studio.service.ts`
 
 Behavior:
 - Submits a simple default-image workflow to `{COMFYUI_BASE_URL}/prompt`.
@@ -19,18 +21,61 @@ Behavior:
 
 Notes:
 - The workflow is currently conservative. It assumes standard node names (`3`, `4`, `5`, `6`, `7`, `8`, `9`).
-- If the local install’s node IDs differ, update the workflow map in `comfyui.ts`.
+- If the local install's node IDs differ, update the workflow map in `comfyui.service.ts`.
 
-## Frontend auth path
+## Starting ComfyUI
 
-Files:
-- `src/App.tsx`
-- `src/routes.tsx`
-- `src/components/RouteGuard.tsx`
-- `src/hooks/useAuthInit.ts`
+```bash
+# Activate the venv
+D:\AgentDevWork\Programs\comfyui\venv\Scripts\activate
 
-Behavior:
-- `isAuth` now reflects the in-flight init check correctly.
-- App rendering is paused until `/me` returns.
+# Start ComfyUI
+python D:\AgentDevWork\Programs\comfyui\ComfyUI\main.py --listen 0.0.0.0 --port 8188
+```
 
-Execution on this turn is complete.
+Or directly:
+```bash
+D:\AgentDevWork\Programs\comfyui\venv\Scripts\python.exe D:\AgentDevWork\Programs\comfyui\ComfyUI\main.py --listen 0.0.0.0 --port 8188
+```
+
+## Backend Configuration
+
+In `backend/.env`:
+```env
+IMAGE_PROVIDER=stable-diffusion
+COMFYUI_BASE_URL=http://localhost:8188
+```
+
+## API Endpoint
+
+`POST /api/studio/generate-image`
+
+Request body:
+```json
+{
+  "prompt": "a beautiful sunset over mountains",
+  "negative_prompt": "blurry, low quality",
+  "width": 512,
+  "height": 512,
+  "steps": 20,
+  "cfg_scale": 7.5
+}
+```
+
+Response:
+```json
+{
+  "imageUrl": "http://localhost:8188/view?filename=..."
+}
+```
+
+## Requirements
+
+- NVIDIA GPU with 6GB+ VRAM (RTX 2060 recommended)
+- Python 3.11+
+- PyTorch with CUDA 12.4
+- SD 1.5 model (~4GB)
+
+## Model Location
+
+SD 1.5 model: `D:\AgentDevWork\Programs\comfyui\ComfyUI\models\checkpoints\v1-5-pruned-emaonly.safetensors`

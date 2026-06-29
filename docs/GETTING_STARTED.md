@@ -1,150 +1,189 @@
 # Getting Started with MINT
 
-MINT is a personal AI content workstation for faceless YouTube channels, packaged as a native Windows desktop app. It runs entirely on your machine — no cloud account needed.
+MINT is a personal AI content workstation for faceless YouTube channels. It runs entirely on your machine — no cloud account needed.
 
 ---
 
-## Option A: Install the Desktop App (Recommended)
+## Quick Start (Local AI)
 
 ### Requirements
-- Windows 10 or 11 (x64)
-- [Node.js 18+](https://nodejs.org) — the app needs this to run its local server
-- WebView2 Runtime — pre-installed on Windows 11; the MSI will install it on Windows 10 if missing
+
+- Windows 10/11 (x64)
+- [Node.js 18+](https://nodejs.org)
+- [Ollama](https://ollama.ai) — local AI (already installed with llama3.2)
+- NVIDIA GPU with 6GB+ VRAM (recommended for ComfyUI image generation)
 
 ### Steps
 
-1. Download `MINT_0.1.0_x64_en-US.msi` from [GitHub Releases](https://github.com/Thatisshayan/Mint/releases)
-2. Run the installer (click Yes on the UAC prompt)
-3. Launch MINT from the Start menu or Desktop shortcut
-4. MINT opens directly to the Dashboard — no login required
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Thatisshayan/Mint.git
+   cd Mint
+   ```
 
-### Configure AI Keys
+2. Install dependencies:
+   ```bash
+   npm install
+   cd backend && npm install && cd ..
+   ```
 
-MINT needs at least one AI provider key to generate content.
+3. Start all services:
+   ```bash
+   start-mint.bat
+   ```
+   Or manually:
+   ```bash
+   # Start Ollama (if not running)
+   ollama serve
+   
+   # Start backend (port 4000)
+   node --import tsx/esm backend/src/index.ts
+   
+   # Start frontend (port 5173)
+   npx vite --host
+   ```
 
-On first use, go to **Settings** (or edit `backend/.env` directly) and add:
+4. Open http://localhost:5173
+5. Click "Continue" on the landing page (dev auto-authenticates)
+
+---
+
+## Local AI Services
+
+MINT uses local AI services — no API keys required for basic usage.
+
+| Service | Port | Purpose | VRAM |
+|---------|------|---------|------|
+| **Ollama** | 11434 | LLM text generation | ~2GB |
+| **ComfyUI** | 8188 | Image generation | ~4GB |
+| **Piper TTS** | — | Text-to-speech | CPU only |
+| **Money Printer Turbo** | 8501 | Video generation | (optional) |
+
+### Ollama Setup (Required)
+
+Ollama is already installed and configured with the `llama3.2` model.
+
+```bash
+# Verify Ollama is running
+ollama list
+
+# Pull a different model if needed
+ollama pull llama3.2:3b    # Smaller, faster
+ollama pull gemma4         # Larger, more capable
+```
+
+### ComfyUI Setup (Optional — for image generation)
+
+ComfyUI is installed at `D:\AgentDevWork\Programs\comfyui\` with the SD 1.5 model.
+
+```bash
+# Start ComfyUI
+D:\AgentDevWork\Programs\comfyui\venv\Scripts\python.exe D:\AgentDevWork\Programs\comfyui\ComfyUI\main.py --listen 0.0.0.0 --port 8188
+```
+
+### Piper TTS Setup (Optional — for voiceover)
+
+Piper TTS is installed at `D:\AgentDevWork\Programs\piper-tts\` with the `en_US-amy-medium` voice.
+
+---
+
+## Configuration
+
+Edit `backend/.env` to configure services:
 
 ```env
-# Cheapest + best quality — recommended
-DEEPSEEK_API_KEY=sk-...
-
-# Fallback option
-OPENAI_API_KEY=sk-...
-
-# Free local option (requires Ollama installed separately)
+# LLM: Use Ollama locally (default)
+LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
-```
 
-The AI provider chain is: DeepSeek → OpenAI → Ollama. MINT tries each in order and falls back if one fails.
+# Image generation: Use ComfyUI
+IMAGE_PROVIDER=stable-diffusion
+COMFYUI_BASE_URL=http://localhost:8188
+
+# TTS: Use Piper
+TTS_PROVIDER=piper
+PIPER_EXECUTABLE=D:\AgentDevWork\Programs\piper-tts\piper.exe
+PIPER_VOICE_DIR=D:\AgentDevWork\Programs\piper-tts\voices
+
+# Research: Add Brave Search API key for web research
+RESEARCH_PROVIDER=brave
+BRAVE_SEARCH_API_KEY=
+
+# Optional: Cloud AI fallback
+OPENAI_API_KEY=
+DEEPSEEK_API_KEY=
+```
 
 ---
 
-## Option B: Run in Development Mode
+## AI Provider Chain
 
-For contributors or users who want to run from source.
-
-### Prerequisites
-
-- Node.js 20+
-- Rust + Cargo (`rustup.rs`)
-- npm
-
-### Install
-
-```bash
-git clone https://github.com/Thatisshayan/Mint.git
-cd Mint
-npm install
-cd backend && npm install && cd ..
 ```
-
-### Configure
-
-```bash
-cp backend/.env.example backend/.env
+Request → Ollama (primary, local, free)
+            ↓ fails / not running
+          DeepSeek V3 (if API key configured)
+            ↓ fails / no key
+          OpenAI gpt-4o-mini (if API key configured)
 ```
-
-Edit `backend/.env`:
-
-```env
-PORT=19421
-MINT_DESKTOP=true
-JWT_SECRET=any-random-string-for-dev
-
-# At least one AI provider:
-DEEPSEEK_API_KEY=your-key
-```
-
-### Start (Tauri Desktop)
-
-```bash
-npm run tauri:dev
-```
-
-This opens a hot-reloading desktop window. Backend runs at `localhost:19421`.
-
-### Start (Web Mode — no Tauri)
-
-```bash
-npm run dev:all
-```
-
-Opens at `http://localhost:5173`. Auth uses magic link (dev mode auto-verifies — enter any email, click the link in the console).
-
----
-
-## Build the Installer
-
-```bash
-npm run tauri:build
-```
-
-Outputs: `src-tauri/target/release/bundle/msi/MINT_0.1.0_x64_en-US.msi`
-
----
-
-## AI Provider Setup
-
-### DeepSeek (Recommended)
-- Sign up at https://platform.deepseek.com
-- Set `DEEPSEEK_API_KEY=sk-...` in `backend/.env`
-- Very cheap — ~$0.0001 per 1K tokens for V3
-
-### OpenAI
-- Sign up at https://platform.openai.com
-- Set `OPENAI_API_KEY=sk-...`
-- Uses `gpt-4o-mini` by default
 
 ### Ollama (Free, Local)
-- Install from https://ollama.ai
-- Run: `ollama pull llama3.1:8b`
-- Set `OLLAMA_BASE_URL=http://localhost:11434`
-- No cost, but slower than cloud providers
+
+- **Cost:** Free (runs locally)
+- **Model:** llama3.2 (2GB VRAM, fits RTX 2060)
+- **Setup:** Already installed
+
+### DeepSeek (Optional, Cloud)
+
+- **Cost:** ~$0.001/1K tokens
+- **Setup:** Add `DEEPSEEK_API_KEY=sk-...` to `backend/.env`
+
+### OpenAI (Optional, Cloud)
+
+- **Cost:** ~$0.00015/1K tokens (GPT-4o-mini)
+- **Setup:** Add `OPENAI_API_KEY=sk-...` to `backend/.env`
+
+---
+
+## Development Commands
+
+| Command | Description |
+|---------|-------------|
+| `start-mint.bat` | Start all services |
+| `npm run dev` | Frontend only (Vite, :5173) |
+| `npm run backend:dev` | Backend only (tsx, :4000) |
+| `npm run dev:all` | Both backend + frontend |
+| `npm run build` | TypeScript check + Vite build |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier |
 
 ---
 
 ## Troubleshooting
 
-### White screen on launch
-The app couldn't start the backend. Check:
-- Node.js is installed (`node --version` in a terminal)
-- No other process is using port 19421
-- Try reinstalling the MSI
+### "Backend not responding" error
+- Ensure Node.js is installed: `node --version`
+- Check if port 4000 is in use: `netstat -ano | findstr :4000`
+- Try restarting: kill node processes and restart
 
-### "Failed to fetch" errors
-The backend didn't start in time or crashed. Check:
-- Node.js is on your PATH
-- Look for errors in `%APPDATA%\com.mint.app\logs\`
+### "Ollama not available" error
+- Ensure Ollama is running: `ollama list`
+- Start Ollama: `ollama serve`
+- Check the model is pulled: `ollama pull llama3.2`
 
-### AI generation fails
-- Verify your API key is set and valid
-- Try switching to a different provider in Settings
-- Check your internet connection for cloud providers
+### "ComfyUI not available" error
+- Ensure ComfyUI is running: http://localhost:8188
+- Start ComfyUI: see ComfyUI Setup section above
+- Image generation will return placeholder if ComfyUI is not running
 
-### Port 19421 already in use
+### "AI generation fails" error
+- Check if Ollama is running and has a model
+- Try switching to a different provider in `backend/.env`
+- Check the backend console for error messages
+
+### Port already in use
 Kill the stray process:
 ```powershell
-netstat -ano | findstr :19421
+netstat -ano | findstr :4000
 taskkill /PID <pid> /F
 ```
 
@@ -156,23 +195,9 @@ All your data is stored locally:
 
 | Item | Location |
 |------|---------|
-| Database | `%APPDATA%\com.mint.app\mint.db` |
-| Logs | `%APPDATA%\com.mint.app\logs\` |
-| Exported content | Where you save it |
+| Database | `backend/prisma/mint.db` |
+| ComfyUI models | `D:\AgentDevWork\Programs\comfyui\ComfyUI\models\` |
+| Piper TTS voices | `D:\AgentDevWork\Programs\piper-tts\voices\` |
+| Ollama models | `C:\Users\AgentDev\.ollama\models\` |
 
-To back up your data, copy `mint.db`.
-
----
-
-## Commands Reference
-
-| Command | Description |
-|---------|-------------|
-| `npm run tauri:dev` | Desktop app with hot reload |
-| `npm run tauri:build` | Build Windows MSI |
-| `npm run dev` | Frontend only (Vite, :5173) |
-| `npm run dev:all` | Backend + frontend (web mode) |
-| `npm run backend:build` | Bundle backend with esbuild |
-| `npm run test` | Run Vitest tests |
-| `npm run lint` | ESLint |
-| `npm run format` | Prettier |
+To back up your data, copy `backend/prisma/mint.db`.

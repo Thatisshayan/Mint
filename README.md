@@ -1,12 +1,12 @@
 # MINT — AI Content Workstation
 
-A personal AI content workstation for faceless YouTube channels, packaged as a native Windows desktop app (Tauri 2). Generate scripts, captions, hooks, thumbnails, research reports, and publish queues — all running locally with no cloud dependency.
+A personal AI content workstation for faceless YouTube channels. Generate scripts, captions, hooks, thumbnails, research reports, and more — all running locally with no cloud dependency.
 
 ## What It Does
 
 | Feature | Description |
 |---------|-------------|
-| **AI Studio** | Generate scripts, captions, thumbnails, hooks, video scenarios via DeepSeek / OpenAI / Ollama |
+| **AI Studio** | Generate scripts, captions, thumbnails, hooks, video scenarios via Ollama (local) |
 | **Research** | AI-powered research reports with competitor analysis |
 | **Projects** | Organize content into projects with status tracking |
 | **Library** | Save, tag, search, and favorite generated content |
@@ -19,95 +19,93 @@ A personal AI content workstation for faceless YouTube channels, packaged as a n
 
 | Layer | Stack |
 |-------|-------|
-| **Desktop Shell** | Tauri 2 (Rust + WebView2) — Windows MSI installer |
 | **Frontend** | React 18, Vite 6, TypeScript 5.7, Tailwind CSS 3, TanStack Query 5, Framer Motion |
 | **Backend** | Fastify 5, TypeScript 5.7, Prisma 6, SQLite (local, no server needed) |
-| **AI** | DeepSeek V3 → OpenAI → Ollama fallback chain |
-| **Media** | ComfyUI (images), Edge TTS (voice), Pexels (stock footage), FFmpeg (assembly) |
-| **Build** | esbuild (backend bundle), Vite (frontend), Tauri (native shell + MSI) |
+| **AI** | Ollama (primary, local) → DeepSeek → OpenAI fallback chain |
+| **Image Gen** | ComfyUI with SD 1.5 model (local, GPU-accelerated) |
+| **TTS** | Piper TTS (local, offline) or Edge TTS (Microsoft cloud) |
+| **Build** | Vite (frontend), tsx (backend), esbuild (optional bundle) |
 
-## Desktop App (Windows)
-
-### Install
-
-Download and run `MINT_0.1.0_x64_en-US.msi` from the [latest release](https://github.com/Thatisshayan/Mint/releases).
-
-MINT installs to `D:\Program Files\MINT\` and opens directly to the Dashboard — no login required.
-
-### How It Works
-
-- Tauri starts a local Fastify server on `localhost:19421` at launch
-- The server uses SQLite at `%APPDATA%\com.mint.app\mint.db` — all data stays on your machine
-- Node.js must be installed on your system (the app discovers it automatically via PATH or common install paths)
-- The backend bundle (`server.cjs`) and Prisma query engine are included in the installer
-
-### Requirements
-
-- Windows 10/11 x64
-- Node.js 18+ (download from https://nodejs.org)
-- WebView2 Runtime (usually pre-installed on Windows 11; otherwise auto-installed by MSI)
-
-## Development Setup
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 20+
-- Rust + `cargo` (for Tauri)
-- `npm`
+- Node.js 18+ (https://nodejs.org)
+- Ollama (https://ollama.ai) — already installed with llama3.2
 
-### Install
+### Install & Run
 
 ```bash
 git clone https://github.com/Thatisshayan/Mint.git
 cd Mint
 npm install
 cd backend && npm install && cd ..
+start-mint.bat
 ```
 
-### Configure AI
+Or manually:
 
 ```bash
-cp backend/.env.example backend/.env
+npm install
+cd backend && npm install && cd ..
+ollama serve                                    # Start Ollama (if not running)
+node --import tsx/esm backend/src/index.ts      # Start backend on :4000
+npx vite --host                                 # Start frontend on :5173
 ```
 
-Edit `backend/.env`:
+Open http://localhost:5173 — click "Continue" to enter (dev auto-auth).
+
+## Local AI Services
+
+| Service | Port | Purpose | Setup |
+|---------|------|---------|-------|
+| **Ollama** | 11434 | LLM text generation | Already installed (llama3.2) |
+| **ComfyUI** | 8188 | Image generation | Installed at `D:\AgentDevWork\Programs\comfyui\` |
+| **Piper TTS** | — | Text-to-speech | Installed at `D:\AgentDevWork\Programs\piper-tts\` |
+| **Money Printer Turbo** | 8501 | Video generation | (Optional) Clone to `D:\AgentDevWork\Programs\money-printer-turbo\` |
+
+### Configuration
+
+Edit `backend/.env` to configure local services:
 
 ```env
-DEEPSEEK_API_KEY=your-key      # cheapest + best
-# OPENAI_API_KEY=your-key      # fallback
-# OLLAMA_BASE_URL=http://localhost:11434  # free, local
-JWT_SECRET=any-random-string
-PORT=19421
+# LLM: Use Ollama locally (no API key needed)
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+
+# Image generation: Use ComfyUI locally
+IMAGE_PROVIDER=stable-diffusion
+COMFYUI_BASE_URL=http://localhost:8188
+
+# TTS: Use Piper locally
+TTS_PROVIDER=piper
+PIPER_EXECUTABLE=D:\AgentDevWork\Programs\piper-tts\piper.exe
+
+# Research: Add Brave Search API key for web research
+RESEARCH_PROVIDER=brave
+BRAVE_SEARCH_API_KEY=
 ```
 
-### Start Dev
+### Services Status
 
-```bash
-npm run tauri:dev       # Tauri desktop app (hot reload)
-# OR
-npm run dev:all         # Web mode: backend :19421 + frontend :5173
-```
-
-### Build MSI
-
-```bash
-npm run tauri:build     # outputs src-tauri/target/release/bundle/msi/MINT_0.1.0_x64_en-US.msi
-```
+- **Ollama**: Running with llama3.2 (2GB VRAM, fits RTX 2060)
+- **ComfyUI**: Running with SD 1.5 model (~4GB VRAM)
+- **Piper TTS**: Installed with en_US-amy-medium voice
+- **Backend**: Running on http://localhost:4000
+- **Frontend**: Running on http://localhost:5173
 
 ## Commands Reference
 
 | Command | Description |
 |---------|-------------|
-| `npm run tauri:dev` | Tauri desktop dev (hot reload) |
-| `npm run tauri:build` | Build Windows MSI installer |
-| `npm run dev` | Vite frontend only (:5173) |
-| `npm run dev:all` | Backend + frontend (web mode) |
-| `npm run build` | Build frontend bundle |
-| `npm run backend:build` | Bundle backend with esbuild + Prisma |
-| `npm run backend:start` | Run bundled backend directly |
-| `npm run test` | Vitest unit tests |
-| `npm run lint` | ESLint |
-| `npm run format` | Prettier |
+| `start-mint.bat` | Start all services (Ollama, ComfyUI, Backend, Frontend) |
+| `npm run dev` | Start Vite frontend only (:5173) |
+| `npm run backend:dev` | Start backend with tsx watch |
+| `npm run build` | TypeScript check + Vite build |
+| `npm run lint` | ESLint check |
+| `npm run db:generate` | Run Prisma migrations + seed |
+| `npm run db:studio` | Open Prisma Studio |
+| `npm run format` | Prettier format |
 
 ## Documentation
 
