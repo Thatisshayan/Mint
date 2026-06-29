@@ -37,3 +37,5 @@
 | 27 | Sprint 5: Final polish | DONE | Performance (lazy loading), animations (Framer Motion), data export, README |
 | 28 | Install local AI services | DONE | ComfyUI, Piper TTS, configure Ollama, create start-mint.bat |
 | 29 | Update documentation | DONE | README, ARCHITECTURE, AGENTS, GETTING_STARTED, AI_PROVIDERS, GROUND_TRUTH, TODO |
+| 30 | Create Windows installer | DONE | Inno Setup smart installer (88MB), auto-detect services, desktop shortcut |
+| 31 | Update all docs for installer | DONE | README, ARCHITECTURE, AGENTS, GETTING_STARTED, BUNDLE, GROUND_TRUTH, USER_MANUAL, TODO, KANBAN |

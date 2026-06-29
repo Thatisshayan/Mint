@@ -53,6 +53,16 @@ All 5 phases are implemented and functional.
 - [x] Create start-mint.bat launcher script
 - [x] Update documentation
 
+### Phase 7: Windows Installer (✅ DONE)
+- [x] Create Inno Setup .iss script
+- [x] Create Ollama/ComfyUI download helpers
+- [x] Compile 88MB smart installer
+- [x] Auto-detect existing AI services
+- [x] Desktop shortcut + Start Menu entry
+- [x] Updated start-mint.bat / stop-mint.bat
+- [x] Added MIT LICENSE
+- [x] Updated .gitignore for build artifacts
+
 ### Phase ∞: Polish (⏳ FUTURE)
 - [ ] Real SMTP email sending for auth
 - [ ] YouTube Data API integration

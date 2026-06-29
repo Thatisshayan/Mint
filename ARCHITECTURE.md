@@ -149,6 +149,20 @@ npm run build          # TypeScript check + Vite build
 npm run backend:build  # esbuild bundle + Prisma copy
 ```
 
+### Windows Installer
+
+Smart installer built with Inno Setup (`installer/MINT_Setup.iss`):
+- Bundles MINT source + Piper TTS (~88MB)
+- Auto-detects existing Ollama/ComfyUI
+- Downloads missing AI services during setup
+- Creates desktop shortcut + Start Menu entry
+- Runs Prisma migrations post-install
+
+```bash
+# Compile installer (requires Inno Setup 6)
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\MINT_Setup.iss
+```
+
 ## Security
 
 - **Helmet**: active, CSP disabled (dev mode)
@@ -181,6 +195,12 @@ MINT/
 │   ├── src/routes/           ← API route handlers
 │   ├── src/services/         ← Business logic (AI, media, etc.)
 │   └── prisma/schema.prisma  ← SQLite schema
+├── installer/
+│   ├── MINT_Setup.iss        ← Inno Setup script
+│   ├── download-ollama.bat   ← Ollama installer helper
+│   └── download-comfyui.bat  ← ComfyUI installer helper
 ├── start-mint.bat            ← Master launcher script
+├── stop-mint.bat             ← Stop all services
+├── LICENSE                   ← MIT license
 └── .env                      ← Root env (DATABASE_URL for Prisma)
 ```

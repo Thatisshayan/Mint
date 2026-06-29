@@ -2,7 +2,7 @@
 
 **Single source of truth. Updated after every significant change.**
 
-*Last updated: June 2026 — Local AI services working, all features functional.*
+*Last updated: June 2026 — Local AI services working, Windows installer created, all features functional.*
 
 ---
 
@@ -37,6 +37,13 @@ MINT is a **working web application** with local AI services (Ollama, ComfyUI, P
 - **ComfyUI** (port 8188): Installed with SD 1.5 model (~4GB VRAM)
 - **Piper TTS**: Installed with en_US-amy-medium voice
 - **Backend**: Configured to use all local services
+
+### Windows Installer
+- **Smart installer** (88MB): Inno Setup-based, auto-detects existing services
+- **Bundles**: MINT source + Piper TTS + start/stop scripts
+- **Downloads**: Ollama, ComfyUI, SD 1.5 model during setup if missing
+- **Creates**: Desktop shortcut, Start Menu entry
+- **Post-install**: Runs Prisma migrations and generates client
 
 ---
 
@@ -144,3 +151,4 @@ npm run db:studio        # Open Prisma Studio
 | Desktop 3 | June 2026 | Fix Fastify v4→v5, add schema auto-init, fix Tauri detection |
 | Desktop 4 | June 2026 | Fix ThemeProvider missing from tree — resolves white screen |
 | Local AI | June 2026 | Install ComfyUI, Piper TTS, configure Ollama, create start-mint.bat |
+| Installer | June 2026 | Inno Setup smart installer (88MB), auto-detect AI services, desktop shortcut |

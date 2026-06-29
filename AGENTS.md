@@ -27,6 +27,10 @@ MINT/
 │   ├── services/        # Business logic
 │   ├── middleware/      # auth.ts (JWT middleware)
 │   └── utils/           # jwt.ts
+├── installer/
+│   ├── MINT_Setup.iss   # Inno Setup installer script
+│   ├── download-ollama.bat
+│   └── download-comfyui.bat
 └── backend/prisma/
     └── schema.prisma    # DB schema
 ```
@@ -36,6 +40,7 @@ MINT/
 | Command | Description |
 |---------|-------------|
 | `start-mint.bat` | Start all services (Ollama, ComfyUI, Backend, Frontend) |
+| `stop-mint.bat` | Stop all MINT services |
 | `npm run dev` | Start Vite dev server (frontend) |
 | `npm run backend:dev` | Start backend with tsx watch |
 | `npm run build` | TypeScript check + Vite build |

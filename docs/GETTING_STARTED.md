@@ -6,6 +6,18 @@ MINT is a personal AI content workstation for faceless YouTube channels. It runs
 
 ## Quick Start (Local AI)
 
+### Option 1: Windows Installer (Recommended)
+
+Download [`MINT_Setup_0.2.0.exe`](https://github.com/Thatisshayan/Mint/releases/download/v0.2.0/MINT_Setup_0.2.0.exe) from GitHub Releases.
+
+The smart installer:
+1. Detects existing Ollama/ComfyUI installations
+2. Downloads missing AI services during setup
+3. Creates desktop shortcut and Start Menu entry
+4. Runs Prisma migrations on first launch
+
+### Option 2: Manual Install
+
 ### Requirements
 
 - Windows 10/11 (x64)

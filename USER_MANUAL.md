@@ -93,7 +93,16 @@ VITE_API_URL="http://localhost:4000/api"
 
 ## How to Run
 
-### Option 1: Start All Services (Recommended)
+### Option 1: Windows Installer (Recommended)
+
+Download [`MINT_Setup_0.2.0.exe`](https://github.com/Thatisshayan/Mint/releases/download/v0.2.0/MINT_Setup_0.2.0.exe) from GitHub Releases and run it. The installer:
+
+1. Detects existing Ollama/ComfyUI installations
+2. Downloads missing AI services during setup
+3. Creates desktop shortcut and Start Menu entry
+4. Runs Prisma migrations on first launch
+
+### Option 2: Start All Services (Manual)
 
 ```bash
 start-mint.bat
@@ -396,6 +405,7 @@ SQLite stores:
 | Command | Purpose |
 |---------|---------|
 | `start-mint.bat` | Start all services |
+| `stop-mint.bat` | Stop all MINT services |
 | `npm run dev` | Frontend only (Vite, :5173) |
 | `npm run backend:dev` | Backend only (tsx, :4000) |
 | `npm run dev:all` | Both backend + frontend |

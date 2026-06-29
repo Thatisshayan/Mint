@@ -28,12 +28,16 @@ A personal AI content workstation for faceless YouTube channels. Generate script
 
 ## Quick Start
 
-### Prerequisites
+### Option 1: Windows Installer (Recommended)
 
-- Node.js 18+ (https://nodejs.org)
-- Ollama (https://ollama.ai) — already installed with llama3.2
+Download [`MINT_Setup_0.2.0.exe`](https://github.com/Thatisshayan/Mint/releases/download/v0.2.0/MINT_Setup_0.2.0.exe) from [Releases](https://github.com/Thatisshayan/Mint/releases/tag/v0.2.0). The smart installer:
 
-### Install & Run
+- Detects existing Ollama/ComfyUI installations
+- Downloads missing AI services automatically
+- Creates desktop shortcut and Start Menu entry
+- Runs Prisma migrations on first launch
+
+### Option 2: Manual Install
 
 ```bash
 git clone https://github.com/Thatisshayan/Mint.git
@@ -99,12 +103,15 @@ BRAVE_SEARCH_API_KEY=
 | Command | Description |
 |---------|-------------|
 | `start-mint.bat` | Start all services (Ollama, ComfyUI, Backend, Frontend) |
+| `stop-mint.bat` | Stop all MINT services |
 | `npm run dev` | Start Vite frontend only (:5173) |
 | `npm run backend:dev` | Start backend with tsx watch |
 | `npm run build` | TypeScript check + Vite build |
 | `npm run lint` | ESLint check |
 | `npm run db:generate` | Run Prisma migrations + seed |
 | `npm run db:studio` | Open Prisma Studio |
+| `npm run db:migrate` | Run Prisma dev migrations |
+| `npm run db:seed` | Run Prisma seed |
 | `npm run format` | Prettier format |
 
 ## Documentation

@@ -3,6 +3,17 @@
 Goal: Open MINT and have the local generation stack ready.
 Use zero-cost self-hosted tools only. No paid APIs required.
 
+## Windows Installer
+
+Smart installer built with Inno Setup (`installer/MINT_Setup.iss`):
+- **Size**: ~88MB (MINT + Piper TTS bundled)
+- **Auto-detects**: Existing Ollama/ComfyUI installations
+- **Downloads**: Missing AI services during setup
+- **Creates**: Desktop shortcut, Start Menu entry
+- **Post-install**: Runs Prisma migrations
+
+Download: [`MINT_Setup_0.2.0.exe`](https://github.com/Thatisshayan/Mint/releases/download/v0.2.0/MINT_Setup_0.2.0.exe)
+
 ## Bundle Components
 
 1. **Ollama** — Local LLM backend for scripts/captions/prompts
@@ -71,3 +82,12 @@ If a local service is not installed, return a clear error instead of falling bac
 | Money Printer Turbo | 8501 | ⏳ Optional |
 | Backend | 4000 | ✅ Running |
 | Frontend | 5173 | ✅ Running |
+
+## Compiling the Installer
+
+```bash
+# Requires Inno Setup 6 installed
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\MINT_Setup.iss
+
+# Output: installer/output/MINT_Setup_0.2.0.exe
+```
