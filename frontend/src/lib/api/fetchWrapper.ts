@@ -10,8 +10,11 @@ const getBaseUrl = (): string => {
   }
   if (IS_BROWSER) {
     // Check if running inside Tauri (desktop mode)
-    // Tauri injects __TAURI__ on the window object
-    if (typeof window !== 'undefined' && '__TAURI__' in window) {
+    // Tauri v2 injects __TAURI_INTERNALS__, v1 injects __TAURI__
+    if (
+      typeof window !== 'undefined' &&
+      ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)
+    ) {
       return 'http://localhost:19421/api';
     }
     return '/api';

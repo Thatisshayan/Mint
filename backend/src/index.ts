@@ -97,10 +97,18 @@ export async function buildApp() {
   await app.register((await import('./routes/template.routes.js')).default, { prefix: '/api' });
   await app.register((await import('./routes/export.routes.js')).default, { prefix: '/api' });
 
-  // Serve frontend static files in production (after API routes to avoid conflicts)
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const frontendDist = path.resolve(__dirname, '../../frontend/dist');
-  if (fs.existsSync(frontendDist)) {
+  // Serve frontend static files only in web/server mode (desktop uses Tauri's built-in asset server)
+  const frontendDist = !isDesktop
+    ? (() => {
+        try {
+          const dir = path.dirname(fileURLToPath(import.meta.url));
+          return path.resolve(dir, '../../frontend/dist');
+        } catch {
+          return '';
+        }
+      })()
+    : '';
+  if (!isDesktop && frontendDist && fs.existsSync(frontendDist)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await app.register(fastifyStatic as any, {
       root: frontendDist,
@@ -149,3 +157,5 @@ async function shutdown(signal: string) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+
+buildApp();

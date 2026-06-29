@@ -185,11 +185,11 @@ fn start_backend(app_dir: &std::path::Path, resource_dir: &std::path::Path, port
         // Release: backend/dist is bundled into resources/ alongside the exe
         // tauri.conf.json maps "../backend/dist" -> "resources/backend/dist"
         let candidates = [
-            resource_dir.join("backend/dist/index.js"),
-            // fallback: same dir as exe (older bundle layout)
+            resource_dir.join("backend/dist/server.cjs"),
+            // fallback: older bundle layout
             std::env::current_exe()
                 .ok()
-                .and_then(|e| e.parent().map(|p| p.join("resources/backend/dist/index.js")))
+                .and_then(|e| e.parent().map(|p| p.join("resources/backend/dist/server.cjs")))
                 .unwrap_or_default(),
         ];
 
@@ -207,14 +207,30 @@ fn start_backend(app_dir: &std::path::Path, resource_dir: &std::path::Path, port
         }
     };
 
-    let status = std::process::Command::new(cmd)
+    // Prisma query engine binary location — must be alongside server.cjs in production
+    let prisma_engine = if cfg!(debug_assertions) {
+        std::env::current_dir()
+            .ok()
+            .map(|p| p.join("node_modules/@prisma/engines/query_engine-windows.dll.node"))
+            .unwrap_or_default()
+    } else {
+        resource_dir.join("backend/dist/query_engine-windows.dll.node")
+    };
+
+    let mut cmd_builder = std::process::Command::new(cmd);
+    cmd_builder
         .args(&args[1..])
         .env("DATABASE_URL", &db_url)
         .env("JWT_SECRET", "mint-desktop-secret")
         .env("PORT", port.to_string())
         .env("MINT_DESKTOP", "true")
-        .env("NODE_ENV", "development")
-        .spawn();
+        .env("NODE_ENV", "production");
+
+    if prisma_engine.exists() {
+        cmd_builder.env("PRISMA_QUERY_ENGINE_LIBRARY", prisma_engine.to_string_lossy().as_ref());
+    }
+
+    let status = cmd_builder.spawn();
 
     match status {
         Ok(child) => Some(child.id()),
