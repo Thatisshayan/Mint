@@ -29,7 +29,7 @@ export default async function exportRoutes(fastify: FastifyInstance) {
     };
   });
 
-  fastify.post('/export/restore', { preHandler: authMiddleware }, async (request: FastifyRequest<{ Body: z.infer<typeof restoreSchema> }>, reply: FastifyReply) => {
+  fastify.post('/export/restore', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     const userId = request.user?.sub || request.user?.email;
     const body = restoreSchema.parse(request.body);
 
