@@ -1,160 +1,178 @@
 # Getting Started with MINT
 
-MINT is a personal AI content workstation for creating faceless YouTube channel content.
+MINT is a personal AI content workstation for faceless YouTube channels, packaged as a native Windows desktop app. It runs entirely on your machine — no cloud account needed.
 
-## Prerequisites
+---
 
-- Node.js 18+ (recommended: 20+)
-- PostgreSQL 15+ (or use Docker)
-- npm or yarn
+## Option A: Install the Desktop App (Recommended)
 
-## Quick Start (Docker)
+### Requirements
+- Windows 10 or 11 (x64)
+- [Node.js 18+](https://nodejs.org) — the app needs this to run its local server
+- WebView2 Runtime — pre-installed on Windows 11; the MSI will install it on Windows 10 if missing
 
-```bash
-# Clone the repo
-git clone https://github.com/Thatisshayan/Mint.git
-cd Mint
+### Steps
 
-# Copy environment file
-cp backend/.env.example backend/.env
+1. Download `MINT_0.1.0_x64_en-US.msi` from [GitHub Releases](https://github.com/Thatisshayan/Mint/releases)
+2. Run the installer (click Yes on the UAC prompt)
+3. Launch MINT from the Start menu or Desktop shortcut
+4. MINT opens directly to the Dashboard — no login required
 
-# Start everything with Docker
-docker-compose up
+### Configure AI Keys
 
-# Open http://localhost:5173
-```
+MINT needs at least one AI provider key to generate content.
 
-## Manual Setup
-
-### 1. Install Dependencies
-
-```bash
-# Root (frontend)
-npm install
-
-# Backend
-cd backend
-npm install
-cd ..
-```
-
-### 2. Set Up Database
-
-```bash
-# Start PostgreSQL (or use Docker)
-docker-compose up -d postgres
-
-# Run migrations
-npm run db:generate
-
-# Seed development data
-npm run db:seed
-```
-
-### 3. Configure Environment
-
-```bash
-cp backend/.env.example backend/.env
-```
-
-Edit `backend/.env` with your settings:
+On first use, go to **Settings** (or edit `backend/.env` directly) and add:
 
 ```env
-# Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mint
+# Cheapest + best quality — recommended
+DEEPSEEK_API_KEY=sk-...
 
-# JWT (dev only)
-JWT_SECRET=your-secret-key
+# Fallback option
+OPENAI_API_KEY=sk-...
 
-# AI Provider (at least one)
-DEEPSEEK_API_KEY=your-deepseek-key
-# OR
-OPENAI_API_KEY=your-openai-key
-# OR
+# Free local option (requires Ollama installed separately)
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-### 4. Start Development
+The AI provider chain is: DeepSeek → OpenAI → Ollama. MINT tries each in order and falls back if one fails.
+
+---
+
+## Option B: Run in Development Mode
+
+For contributors or users who want to run from source.
+
+### Prerequisites
+
+- Node.js 20+
+- Rust + Cargo (`rustup.rs`)
+- npm
+
+### Install
 
 ```bash
-# One command (recommended)
-npm run dev:all
-
-# Or two terminals:
-# Terminal 1: Backend
-npm run backend:dev
-
-# Terminal 2: Frontend
-npm run dev
+git clone https://github.com/Thatisshayan/Mint.git
+cd Mint
+npm install
+cd backend && npm install && cd ..
 ```
 
-### 5. Open Browser
+### Configure
 
-Navigate to `http://localhost:5173`
+```bash
+cp backend/.env.example backend/.env
+```
 
-## AI Provider Configuration
+Edit `backend/.env`:
 
-### DeepSeek (Recommended - Cheapest)
+```env
+PORT=19421
+MINT_DESKTOP=true
+JWT_SECRET=any-random-string-for-dev
 
-1. Sign up at https://platform.deepseek.com
-2. Get API key
-3. Set in `.env`:
-   ```env
-   DEEPSEEK_API_KEY=your-key-here
-   ```
+# At least one AI provider:
+DEEPSEEK_API_KEY=your-key
+```
+
+### Start (Tauri Desktop)
+
+```bash
+npm run tauri:dev
+```
+
+This opens a hot-reloading desktop window. Backend runs at `localhost:19421`.
+
+### Start (Web Mode — no Tauri)
+
+```bash
+npm run dev:all
+```
+
+Opens at `http://localhost:5173`. Auth uses magic link (dev mode auto-verifies — enter any email, click the link in the console).
+
+---
+
+## Build the Installer
+
+```bash
+npm run tauri:build
+```
+
+Outputs: `src-tauri/target/release/bundle/msi/MINT_0.1.0_x64_en-US.msi`
+
+---
+
+## AI Provider Setup
+
+### DeepSeek (Recommended)
+- Sign up at https://platform.deepseek.com
+- Set `DEEPSEEK_API_KEY=sk-...` in `backend/.env`
+- Very cheap — ~$0.0001 per 1K tokens for V3
 
 ### OpenAI
+- Sign up at https://platform.openai.com
+- Set `OPENAI_API_KEY=sk-...`
+- Uses `gpt-4o-mini` by default
 
-1. Sign up at https://platform.openai.com
-2. Get API key
-3. Set in `.env`:
-   ```env
-   OPENAI_API_KEY=your-key-here
-   ```
+### Ollama (Free, Local)
+- Install from https://ollama.ai
+- Run: `ollama pull llama3.1:8b`
+- Set `OLLAMA_BASE_URL=http://localhost:11434`
+- No cost, but slower than cloud providers
 
-### Ollama (Free - Local)
-
-1. Install Ollama: https://ollama.ai
-2. Pull a model: `ollama pull llama3.1:8b`
-3. Set in `.env`:
-   ```env
-   OLLAMA_BASE_URL=http://localhost:11434
-   ```
+---
 
 ## Troubleshooting
 
-### Database Connection Failed
+### White screen on launch
+The app couldn't start the backend. Check:
+- Node.js is installed (`node --version` in a terminal)
+- No other process is using port 19421
+- Try reinstalling the MSI
 
-- Ensure PostgreSQL is running
-- Check `DATABASE_URL` in `.env`
-- Try: `docker-compose up -d postgres`
+### "Failed to fetch" errors
+The backend didn't start in time or crashed. Check:
+- Node.js is on your PATH
+- Look for errors in `%APPDATA%\com.mint.app\logs\`
 
-### AI Generation Fails
+### AI generation fails
+- Verify your API key is set and valid
+- Try switching to a different provider in Settings
+- Check your internet connection for cloud providers
 
-- Check API keys in `.env`
-- Verify network connectivity
-- Check backend logs for errors
-
-### Build Errors
-
-```bash
-# Clean and rebuild
-rm -rf node_modules
-npm install
-npm run build
+### Port 19421 already in use
+Kill the stray process:
+```powershell
+netstat -ano | findstr :19421
+taskkill /PID <pid> /F
 ```
 
-## Development Commands
+---
+
+## Data Location
+
+All your data is stored locally:
+
+| Item | Location |
+|------|---------|
+| Database | `%APPDATA%\com.mint.app\mint.db` |
+| Logs | `%APPDATA%\com.mint.app\logs\` |
+| Exported content | Where you save it |
+
+To back up your data, copy `mint.db`.
+
+---
+
+## Commands Reference
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev:all` | Start backend + frontend |
-| `npm run dev` | Frontend only |
-| `npm run backend:dev` | Backend only |
-| `npm run build` | Build frontend |
-| `npm run backend:build` | Build backend |
-| `npm run test` | Run tests |
-| `npm run lint` | Lint code |
-| `npm run format` | Format code |
-| `npm run db:migrate` | Run migrations |
-| `npm run db:studio` | Open Prisma Studio |
+| `npm run tauri:dev` | Desktop app with hot reload |
+| `npm run tauri:build` | Build Windows MSI |
+| `npm run dev` | Frontend only (Vite, :5173) |
+| `npm run dev:all` | Backend + frontend (web mode) |
+| `npm run backend:build` | Bundle backend with esbuild |
+| `npm run test` | Run Vitest tests |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier |
