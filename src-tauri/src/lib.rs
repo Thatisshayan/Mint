@@ -158,21 +158,16 @@ fn start_comfyui(app_dir: std::path::PathBuf) -> Result<String, String> {
     Err("ComfyUI not found. Install it from https://github.com/comfyanonymous/ComfyUI".to_string())
 }
 
-fn start_backend(app_dir: &std::path::Path, port: u16) -> Option<u32> {
+fn start_backend(app_dir: &std::path::Path, resource_dir: &std::path::Path, port: u16) -> Option<u32> {
     let db_path = app_dir.join("mint.db");
     let db_url = format!("file:{}", db_path.to_string_lossy());
 
     let (cmd, args): (&str, Vec<String>) = if cfg!(debug_assertions) {
+        // Dev: run TypeScript source directly with tsx
         let backend_entry = std::env::current_dir()
             .ok()
             .map(|p| p.join("backend/src/index.ts"))
-            .filter(|p| p.exists())
-            .or_else(|| {
-                std::env::current_exe()
-                    .ok()
-                    .and_then(|e| e.parent()?.parent()?.parent()?.join("backend/src/index.ts").into())
-                    .filter(|p| p.exists())
-            });
+            .filter(|p| p.exists());
 
         match backend_entry {
             Some(entry) => ("node", vec![
@@ -182,26 +177,31 @@ fn start_backend(app_dir: &std::path::Path, port: u16) -> Option<u32> {
                 entry.to_string_lossy().to_string(),
             ]),
             None => {
-                eprintln!("Backend entry point not found");
+                eprintln!("Backend entry point not found at backend/src/index.ts");
                 return None;
             }
         }
     } else {
-        let backend_entry = std::env::current_exe()
-            .ok()
-            .and_then(|e| {
-                let resource_dir = e.parent()?.parent()?;
-                let paths = [
-                    resource_dir.join("backend/dist/index.js"),
-                    resource_dir.join("../../backend/dist/index.js"),
-                ];
-                paths.into_iter().find(|p| p.exists()).map(|p| p.to_path_buf())
-            });
+        // Release: backend/dist is bundled into resources/ alongside the exe
+        // tauri.conf.json maps "../backend/dist" -> "resources/backend/dist"
+        let candidates = [
+            resource_dir.join("backend/dist/index.js"),
+            // fallback: same dir as exe (older bundle layout)
+            std::env::current_exe()
+                .ok()
+                .and_then(|e| e.parent().map(|p| p.join("resources/backend/dist/index.js")))
+                .unwrap_or_default(),
+        ];
+
+        let backend_entry = candidates.iter().find(|p| p.exists()).cloned();
 
         match backend_entry {
-            Some(entry) => ("node", vec!["node".to_string(), entry.to_string_lossy().to_string()]),
+            Some(entry) => {
+                println!("Starting backend from: {}", entry.display());
+                ("node", vec!["node".to_string(), entry.to_string_lossy().to_string()])
+            }
             None => {
-                eprintln!("Backend entry point not found");
+                eprintln!("Backend bundle not found. Checked: {:?}", candidates);
                 return None;
             }
         }
@@ -289,7 +289,11 @@ pub fn run() {
             // Start backend
             let port = BACKEND_PORT;
             println!("Using port: {}", port);
-            let child_id = start_backend(&app_dir, port);
+            let resource_dir = app
+                .path()
+                .resource_dir()
+                .unwrap_or_else(|_| app_dir.clone());
+            let child_id = start_backend(&app_dir, &resource_dir, port);
             {
                 let state = app.state::<BackendState>();
                 *state.child.lock().unwrap() = child_id;

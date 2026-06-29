@@ -13,15 +13,20 @@ export default function AppLayout({ onSignOut, children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="relative min-h-screen bg-background">
-      <Header onSignOut={onSignOut} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-      <div className="flex min-h-[calc(100vh-64px)]">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="flex-1 overflow-auto p-6 lg:p-8">
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onSignOut={onSignOut}
+      />
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile-only top bar */}
+        <Header onSignOut={onSignOut} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        <main className="flex-1 overflow-y-auto">
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {children}
           </motion.div>

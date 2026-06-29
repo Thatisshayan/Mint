@@ -4,6 +4,9 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  // Required for Tauri production: assets are served from filesystem (file://),
+  // so all paths must be relative. Default base '/' resolves to drive root.
+  base: './',
   build: {
     outDir: 'frontend/dist',
   },

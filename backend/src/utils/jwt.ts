@@ -3,10 +3,10 @@ import { timingSafeEqual, createHmac } from 'crypto';
 // Validate JWT_SECRET at module load to fail fast in production
 const JWT_SECRET: string = (() => {
   const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET environment variable is required');
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is required in production');
   }
-  return secret;
+  return secret || 'mint-dev-secret-change-in-production';
 })();
 
 export function sign(

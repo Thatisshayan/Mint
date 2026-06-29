@@ -1,87 +1,163 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind utilities;
 @tailwind components;
 
 @layer base {
   :root {
-    --background: 165 30% 97%;
-    --foreground: 165 50% 8%;
+    --background: 240 10% 98%;
+    --foreground: 240 10% 6%;
     --card: 0 0% 100%;
-    --card-foreground: 165 50% 8%;
+    --card-foreground: 240 10% 6%;
     --popover: 0 0% 100%;
-    --popover-foreground: 165 50% 8%;
-    --primary: 170 80% 35%;
+    --popover-foreground: 240 10% 6%;
+    --primary: 163 72% 40%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 165 30% 92%;
-    --secondary-foreground: 165 50% 15%;
-    --muted: 165 20% 94%;
-    --muted-foreground: 165 20% 45%;
-    --accent: 170 60% 90%;
-    --accent-foreground: 170 80% 20%;
-    --destructive: 0 70% 50%;
+    --secondary: 240 5% 94%;
+    --secondary-foreground: 240 10% 20%;
+    --muted: 240 5% 93%;
+    --muted-foreground: 240 5% 46%;
+    --accent: 163 50% 92%;
+    --accent-foreground: 163 72% 20%;
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 165 20% 85%;
-    --input: 165 20% 88%;
-    --ring: 170 80% 40%;
-    --radius: 0.75rem;
+    --border: 240 5% 88%;
+    --input: 240 5% 90%;
+    --ring: 163 72% 40%;
+    --radius: 0.625rem;
   }
 
   .dark {
-    --background: 165 50% 4%;
-    --foreground: 165 10% 92%;
-    --card: 165 45% 7%;
-    --card-foreground: 165 10% 92%;
-    --popover: 165 45% 7%;
-    --popover-foreground: 165 10% 92%;
-    --primary: 170 80% 40%;
-    --primary-foreground: 165 50% 4%;
-    --secondary: 165 40% 12%;
-    --secondary-foreground: 165 10% 85%;
-    --muted: 165 40% 10%;
-    --muted-foreground: 165 15% 55%;
-    --accent: 170 50% 15%;
-    --accent-foreground: 170 70% 80%;
-    --destructive: 0 60% 35%;
+    /* Deep near-black — slightly blue-tinted like Linear */
+    --background: 240 6% 5%;
+    --foreground: 240 5% 92%;
+    --card: 240 6% 8%;
+    --card-foreground: 240 5% 92%;
+    --popover: 240 6% 9%;
+    --popover-foreground: 240 5% 92%;
+    --primary: 163 72% 44%;
+    --primary-foreground: 240 6% 5%;
+    --secondary: 240 5% 13%;
+    --secondary-foreground: 240 5% 85%;
+    --muted: 240 5% 11%;
+    --muted-foreground: 240 5% 50%;
+    --accent: 163 50% 12%;
+    --accent-foreground: 163 60% 75%;
+    --destructive: 0 55% 38%;
     --destructive-foreground: 0 0% 100%;
-    --border: 165 30% 15%;
-    --input: 165 30% 18%;
-    --ring: 170 80% 45%;
+    --border: 240 5% 14%;
+    --input: 240 5% 16%;
+    --ring: 163 72% 44%;
+    --sidebar: 240 6% 6%;
+    --sidebar-border: 240 5% 11%;
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    @apply bg-background text-foreground;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 14;
   }
 
   ::selection {
-    @apply bg-mint-500/30 text-mint-900;
+    background: hsl(163 72% 44% / 0.25);
+    color: inherit;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
   }
 }
 
 @layer components {
-  .mint-card {
-    @apply rounded-2xl border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md;
+  /* Surface hierarchy */
+  .surface-0 { background: hsl(var(--background)); }
+  .surface-1 { background: hsl(var(--card)); }
+  .surface-2 { background: hsl(var(--secondary)); }
+
+  /* Premium card */
+  .panel {
+    @apply rounded-xl border border-border/60 bg-card;
+  }
+  .panel-hover {
+    @apply panel transition-all duration-200 hover:border-border hover:bg-card/80;
   }
 
+  /* Grid lines overlay — like Vercel */
+  .grid-bg {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.35) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.35) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Stat number */
+  .stat-value {
+    @apply text-3xl font-extrabold tracking-tight text-foreground;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Label caps */
+  .label-caps {
+    @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground;
+  }
+
+  /* Inputs */
   .mint-input {
-    @apply h-12 w-full rounded-xl border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-mint-500 focus:outline-none focus:ring-2 focus:ring-mint-500/20 transition-all;
+    @apply h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/15 transition-all duration-150;
   }
 
+  /* Buttons */
   .mint-btn {
-    @apply inline-flex h-12 items-center justify-center rounded-xl bg-mint-500 px-6 font-bold text-mint-950 shadow-lg shadow-mint-500/25 transition-all hover:brightness-110 hover:shadow-xl hover:shadow-mint-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition-all duration-150 hover:brightness-110 hover:shadow-lg hover:shadow-primary/25 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed;
   }
-
   .mint-btn-ghost {
-    @apply inline-flex h-10 items-center justify-center rounded-xl border border-muted bg-card px-4 text-sm font-semibold text-foreground transition-all hover:bg-accent hover:text-accent-foreground active:scale-[0.98];
+    @apply inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border/70 bg-transparent px-4 text-sm font-medium text-muted-foreground transition-all duration-150 hover:border-border hover:bg-secondary hover:text-foreground active:scale-[0.97];
+  }
+  .mint-btn-sm {
+    @apply inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-all duration-150 active:scale-[0.97];
   }
 
+  /* Badge */
   .mint-badge {
-    @apply inline-flex items-center rounded-full bg-mint-500/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-mint-500;
+    @apply inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary;
+  }
+
+  /* Platform tag */
+  .platform-tag {
+    @apply inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground;
+  }
+
+  /* Status dot */
+  .status-dot {
+    @apply h-1.5 w-1.5 rounded-full;
+  }
+  .status-dot-draft { @apply bg-muted-foreground/60; }
+  .status-dot-published { @apply bg-emerald-500; }
+  .status-dot-archived { @apply bg-amber-500/70; }
+
+  /* Glow accent line — use on hover for cards */
+  .glow-border {
+    box-shadow: 0 0 0 1px hsl(163 72% 44% / 0.4), 0 0 16px 0 hsl(163 72% 44% / 0.12);
   }
 }
