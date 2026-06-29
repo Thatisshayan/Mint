@@ -10,8 +10,19 @@ export const TOKEN_KEY = 'mint_token';
 export const EXPIRY_KEY = 'mint_token_expires_at';
 export const USER_KEY = 'mint_user';
 
+const isDesktop = () =>
+  typeof window !== 'undefined' &&
+  ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
+
+const DESKTOP_SESSION: Session = {
+  user: { id: 'desktop-user', email: 'user@mint.local', name: 'You' },
+  accessToken: 'desktop-token',
+  expiresAt: String(Date.now() + 1000 * 60 * 60 * 24 * 365),
+};
+
 export const authApi = {
   async getSession(): Promise<Session | null> {
+    if (isDesktop()) return DESKTOP_SESSION;
     try {
       const token = typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
       const expiresAt = typeof localStorage !== 'undefined' ? localStorage.getItem(EXPIRY_KEY) : null;

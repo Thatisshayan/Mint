@@ -205,6 +205,14 @@ export async function buildApp() {
           "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )`);
         await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "MagicLinkToken_token_key" ON "MagicLinkToken"("token")`);
+
+        // Ensure the desktop user exists (used as the owner for all local data)
+        if (isDesktop) {
+          await prisma.$executeRawUnsafe(`
+            INSERT OR IGNORE INTO "User" ("id","email","name","createdAt","updatedAt")
+            VALUES ('desktop-user','user@mint.local','You',datetime('now'),datetime('now'))
+          `);
+        }
       } catch (migErr) {
         console.error('Schema init warning (non-fatal):', migErr);
       }

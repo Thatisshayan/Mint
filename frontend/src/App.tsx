@@ -24,7 +24,9 @@ export default function App() {
     <RouteGuard>
       <Suspense fallback={<Loading />}>
         <Routes>
-          <Route path="/" element={<Landing />} />
+          {/* Root always goes to app — auth is handled per-mode in useSession */}
+          <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
+          <Route path="/landing" element={<Landing />} />
           <Route
             path="/app/*"
             element={
@@ -46,7 +48,7 @@ export default function App() {
                   </ErrorBoundary>
                 </AppLayout>
               ) : (
-                <Navigate to="/" replace />
+                <Navigate to="/landing" replace />
               )
             }
           />

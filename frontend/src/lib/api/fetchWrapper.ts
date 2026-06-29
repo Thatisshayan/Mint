@@ -33,12 +33,17 @@ export async function request(path: string, options: RequestInit & { auth?: bool
 
   if (options.auth) {
     try {
-      if (typeof localStorage !== 'undefined') {
-        const token = localStorage.getItem(TOKEN_KEY);
-        if (token) headers.Authorization = `Bearer ${token}`;
-      }
+      // Desktop: backend ignores the token (auto-auth in authMiddleware),
+      // but we still send a placeholder so the header format is valid.
+      const isDesktop =
+        typeof window !== 'undefined' &&
+        ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
+      const token = isDesktop
+        ? 'desktop-token'
+        : (typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null);
+      if (token) headers.Authorization = `Bearer ${token}`;
     } catch {
-      // ignore local env errors
+      // ignore
     }
   }
 
