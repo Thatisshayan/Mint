@@ -10,7 +10,7 @@ export default function RouteGuard({ children }: { children: ReactNode }) {
     if (!loading && !session) {
       // Only redirect if we're on an /app/* route and not authenticated
       if (window.location.pathname.startsWith('/app')) {
-        navigate('/', { replace: true });
+        navigate('/landing', { replace: true });
       }
     }
   }, [session, loading, navigate]);

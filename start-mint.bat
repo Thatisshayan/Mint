@@ -44,7 +44,7 @@ if not exist "%COMFYUI_VENV%" (
 :: Start ComfyUI
 if exist "%COMFYUI_VENV%" (
     echo [2/4] Starting ComfyUI...
-    start "ComfyUI" cmd /c "%COMFYUI_VENV% %COMFYUI_MAIN% --listen 0.0.0.0 --port 8188"
+    start "" "%COMFYUI_VENV%" "%COMFYUI_MAIN%" --listen 0.0.0.0 --port 8188
     timeout /t 8 >NUL
 ) else (
     echo [2/4] WARNING: ComfyUI not found. Image generation will not work.
@@ -53,12 +53,12 @@ if exist "%COMFYUI_VENV%" (
 
 :: Start Backend
 echo [3/4] Starting MINT Backend...
-start "MINT-Backend" cmd /c "cd /d "%~dp0backend" && node --import tsx/esm src/index.ts"
+start "" /D "%~dp0backend" cmd /c "node --import tsx/esm src/index.ts"
 timeout /t 5 >NUL
 
 :: Start Frontend
 echo [4/4] Starting MINT Frontend...
-start "MINT-Frontend" cmd /c "cd /d "%~dp0" && npx vite --host"
+start "" /D "%~dp0" cmd /c "node node_modules\vite\bin\vite.js --host"
 timeout /t 3 >NUL
 
 echo.

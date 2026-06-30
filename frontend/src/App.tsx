@@ -24,8 +24,8 @@ export default function App() {
     <RouteGuard>
       <Suspense fallback={<Loading />}>
         <Routes>
-          {/* Root always goes to app — auth is handled per-mode in useSession */}
-          <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
+          {/* Root goes to dashboard if logged in, landing if not */}
+          <Route path="/" element={session?.user ? <Navigate to="/app/dashboard" replace /> : <Navigate to="/landing" replace />} />
           <Route path="/landing" element={<Landing />} />
           <Route
             path="/app/*"
