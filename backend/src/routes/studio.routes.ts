@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { getAIProvider } from '../services/ai/index.js';
+import { getAIProviderAsync } from '../services/ai/index.js';
 import { getPromptWithVariation, recordRating, getPromptStats } from '../services/ai/prompts.js';
 import { logAiUsage, getUsageStats } from '../services/ai/costTracker.js';
 import { moderateContent } from '../services/ai/moderation.js';
@@ -17,7 +17,7 @@ const generateSchema = z.object({
 export default async function studioRoutes(fastify: FastifyInstance) {
   fastify.post('/studio/generate', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = generateSchema.parse(request.body);
-    const provider = getAIProvider();
+    const provider = await getAIProviderAsync();
 
     const startTime = Date.now();
 

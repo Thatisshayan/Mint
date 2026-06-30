@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { getAIProvider } from '../services/ai/index.js';
+import { getAIProviderAsync } from '../services/ai/index.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const createResearchSchema = z.object({
@@ -24,7 +24,7 @@ export default async function researchRoutes(fastify: FastifyInstance) {
 
   fastify.post('/research', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const body = createResearchSchema.parse(request.body);
-    const provider = getAIProvider();
+    const provider = await getAIProviderAsync();
     const result = await provider.generateText({
       prompt: researchPrompt(body.query),
       temperature: 0.3,
