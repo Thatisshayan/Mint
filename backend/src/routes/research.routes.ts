@@ -33,7 +33,11 @@ export default async function researchRoutes(fastify: FastifyInstance) {
 
     const { createResearch } = await import('../services/research.service.js');
     const userId = request.user?.sub || request.user?.email;
-    const report = await createResearch(userId, { projectId: '', query: body.query, summary: result.output });
+    const report = await createResearch(userId, {
+      projectId: undefined,
+      query: body.query,
+      summary: result.output,
+    });
 
     return {
       id: report?.id || crypto.randomUUID(),

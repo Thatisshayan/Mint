@@ -1,13 +1,15 @@
 import { timingSafeEqual, createHmac } from 'crypto';
 
-// Validate JWT_SECRET at module load to fail fast in production
-const JWT_SECRET: string = (() => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret && process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET environment variable is required in production');
-  }
-  return secret || 'mint-dev-secret-change-in-production';
-})();
+// Single source of truth for the JWT secret. In dev we always fall back to a
+// fixed string so the secret used to sign (here) matches the secret registered
+// with `@fastify/jwt` via backend/src/config.ts.
+const JWT_SECRET: string =
+  process.env.JWT_SECRET ||
+  (process.env.NODE_ENV === 'production'
+    ? (() => {
+        throw new Error('JWT_SECRET is required in production');
+      })()
+    : 'mint-dev-secret-change-in-production');
 
 export function sign(
   payload: Record<string, unknown>,

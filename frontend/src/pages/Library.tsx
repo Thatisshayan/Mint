@@ -32,7 +32,7 @@ export default function Library() {
   const [page, setPage] = useState(1);
   const perPage = 20;
 
-const { data: allData, isLoading, error } = useLibrary(page, perPage) as unknown as {
+  const { data: allData, isLoading, error } = useLibrary(page, perPage) as unknown as {
     data: LibraryResponse | undefined;
     isLoading: boolean;
     error: unknown;
@@ -45,7 +45,8 @@ const { data: allData, isLoading, error } = useLibrary(page, perPage) as unknown
   const updateMutation = useUpdateLibraryItem();
   const toggleFavorite = useToggleFavorite();
 
-  const data = searchQuery ? searchData : allData;
+  // Suppress stale results when the user clears the search input.
+  const data = searchQuery.trim() ? searchData : allData;
   const items = data?.items || [];
   const totalPages = data?.totalPages || 1;
   const currentPage = data?.page || 1;

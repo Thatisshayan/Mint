@@ -2,8 +2,8 @@ import { prisma } from './db.js';
 import { z } from 'zod';
 
 const createResearchSchema = z.object({
-  projectId: z.string().optional(),
-  query: z.string().min(2).max(2000),
+  projectId: z.string().min(1).optional(),
+  query: z.string().min(1).max(2000),
   summary: z.string().optional(),
 });
 

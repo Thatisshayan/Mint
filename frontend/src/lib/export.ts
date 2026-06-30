@@ -2,11 +2,6 @@ export function copyAsMarkdown(text: string): void {
   navigator.clipboard.writeText(text);
 }
 
-export function copyAsPlainText(text: string): void {
-  const plain = text.replace(/[\][#*_*~`]/g, '');
-  navigator.clipboard.writeText(plain);
-}
-
 export function copyAsJSON(data: Record<string, unknown>): void {
   navigator.clipboard.writeText(JSON.stringify(data, null, 2));
 }

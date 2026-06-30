@@ -16,10 +16,11 @@ export function useResearch(projectId?: string) {
 export function useCreateResearch() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { projectId: string; query: string }) => {
+    mutationFn: async (input: { query: string; projectId?: string }) => {
       const res = await apiClient.post('/research', input);
       return res.json();
     },
-    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['research', vars.projectId] }),
+    onSuccess: (_, vars) =>
+      qc.invalidateQueries({ queryKey: ['research', vars.projectId ?? null] }),
   });
 }

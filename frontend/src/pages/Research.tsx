@@ -4,11 +4,10 @@ import { useCreateResearch } from '@/stores/research';
 export default function Research() {
   const [query, setQuery] = useState('');
   const create = useCreateResearch();
-  const [projectId] = useState('demo-project');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await create.mutateAsync({ projectId, query });
+    await create.mutateAsync({ query });
     setQuery('');
   };
 

@@ -30,7 +30,11 @@ export async function searchStockVideos({ query, perPage = 5, minDuration = 5, m
   });
 
   if (!res.ok) {
-    if (res.status === 429) return { videos: [] };
+    if (res.status === 429) {
+      // Surface 429 so the UI can show "Pexels rate-limited" instead of "no results".
+      const retryAfter = res.headers.get('retry-after') ?? 'unknown';
+      throw new Error(`Pexels rate-limited (retry after ${retryAfter}s)`);
+    }
     throw new Error(`Pexels API failed (${res.status})`);
   }
 

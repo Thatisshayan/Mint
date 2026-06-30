@@ -191,11 +191,23 @@ export function ContentGenerator() {
     }
   };
 
+  const handleQueueForPublish = async (item: GeneratedItem) => {
+    try {
+      await saveToLibrary.mutateAsync({
+        content: item.content,
+        platform: item.type,
+        status: 'pending_review',
+      });
+      addToast('Queued for publish', 'success');
+    } catch {
+      addToast('Failed to queue for publish', 'error');
+    }
+  };
+
   const generateVideoFromScript = useCallback(async (script: string) => {
     setGeneratingVideo(true);
     setVideoUrl(null);
     try {
-      const { apiClient } = await import('@/lib/api/client');
       const res = await apiClient.post('/studio/generate-video', { script, platform: 'youtube_shorts' });
       const data = await res.json();
       if (data.url) setVideoUrl(data.url);
@@ -210,7 +222,6 @@ export function ContentGenerator() {
     setGeneratingAudio(true);
     setAudioUrl(null);
     try {
-      const { apiClient } = await import('@/lib/api/client');
       const res = await apiClient.post('/studio/generate-voice', { text });
       const data = await res.json();
       if (data.audioUrl) setAudioUrl(data.audioUrl);
@@ -419,6 +430,13 @@ export function ContentGenerator() {
                 className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left text-sm font-bold text-white hover:border-mint-400/50 disabled:opacity-50"
               >
                 {saveToLibrary.isPending ? 'Saving...' : 'Save to library'}
+              </button>
+              <button
+                onClick={() => handleQueueForPublish(selectedItem)}
+                disabled={saveToLibrary.isPending}
+                className="rounded-2xl border border-mint-500/30 bg-mint-500/10 p-4 text-left text-sm font-bold text-mint-300 hover:bg-mint-500/20 disabled:opacity-50"
+              >
+                Queue for publish
               </button>
               <div className="flex gap-2">
                 <button

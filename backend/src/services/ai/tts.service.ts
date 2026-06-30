@@ -13,15 +13,24 @@ export interface TTSResult {
   format: string;
 }
 
-export async function generateSpeech({ text, voice = 'en-US-JennyNeural', rate = 1, pitch = 1 }: TTSOptions): Promise<TTSResult> {
+export async function generateSpeech({
+  text,
+  voice = 'en-US-JennyNeural',
+  rate = 1,
+  pitch = 1,
+}: TTSOptions): Promise<TTSResult> {
   const baseUrl = process.env.TTS_BASE_URL || EDGE_TTS_API;
   const url = new URL(baseUrl);
+
+  // Guard: clamp rate/pitch and refuse NaN. The TTS providers reject junk and bubble up ugly errors.
+  const safeRate = Math.max(-1, Math.min(2, Number.isFinite(rate) ? rate : 1));
+  const safePitch = Math.max(-1, Math.min(2, Number.isFinite(pitch) ? pitch : 1));
 
   const payload = {
     text,
     voice,
-    rate: `${rate > 0 ? '+' : ''}${Math.round((rate - 1) * 100)}%`,
-    pitch: `${pitch > 0 ? '+' : ''}${Math.round((pitch - 1) * 100)}Hz`,
+    rate: `${safeRate > 0 ? '+' : ''}${Math.round((safeRate - 1) * 100)}%`,
+    pitch: `${safePitch > 0 ? '+' : ''}${Math.round((safePitch - 1) * 100)}Hz`,
     outputFormat: 'audio-24khz-96kbitrate-mono-mp3',
   };
 

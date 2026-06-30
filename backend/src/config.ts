@@ -2,8 +2,11 @@ export const config = {
   env: process.env.NODE_ENV || 'development',
   port: Number(process.env.PORT || 4000),
   databaseUrl: process.env.DATABASE_URL || 'file:./mint.sqlite',
-  jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
-  llmProvider: process.env.LLM_PROVIDER || 'openai',
+  // Same fallback as backend/src/utils/jwt.ts so the two implementations agree.
+  jwtSecret: process.env.JWT_SECRET || 'mint-dev-secret-change-in-production',
+  disableAuth: process.env.DISABLE_AUTH === 'true',
+  // Default 'ollama' for local development; users can override.
+  llmProvider: process.env.LLM_PROVIDER || 'ollama',
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   googleAiApiKey: process.env.GOOGLE_AI_API_KEY || '',
   dashscopeApiKey: process.env.DASHSCOPE_API_KEY || '',

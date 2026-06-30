@@ -36,7 +36,7 @@ export async function buildApp() {
   await app.register(jwt, { secret: config.jwtSecret });
 
   // Security headers via Helmet
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   await app.register(helmet as any, { contentSecurityPolicy: false });
 
   // Rate limiting: disable in desktop mode
@@ -110,7 +110,7 @@ export async function buildApp() {
       })()
     : '';
   if (!isDesktop && frontendDist && fs.existsSync(frontendDist)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     await app.register(fastifyStatic as any, {
       root: frontendDist,
       prefix: '/',
@@ -130,92 +130,96 @@ export async function buildApp() {
     try {
       await connectDb();
 
-      // On first launch, apply the migration SQL to create tables.
-      // Prisma's generated client can't run migrations itself in a bundled app,
-      // so we execute the SQL directly. Safe to re-run (uses CREATE TABLE IF NOT EXISTS).
       try {
-        await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "User" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "email" TEXT NOT NULL,
-          "name" TEXT,
-          "emailVerified" DATETIME,
-          "image" TEXT,
-          "passwordHash" TEXT,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL
-        )`);
-        await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email")`);
-        await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "ContentProject" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "userId" TEXT NOT NULL,
-          "title" TEXT NOT NULL,
-          "description" TEXT,
-          "status" TEXT NOT NULL DEFAULT 'draft',
-          "metadata" TEXT,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL,
-          CONSTRAINT "ContentProject_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-        )`);
-        await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "GeneratedPost" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "userId" TEXT NOT NULL,
-          "projectId" TEXT,
-          "platform" TEXT NOT NULL,
-          "content" TEXT NOT NULL,
-          "status" TEXT NOT NULL DEFAULT 'draft',
-          "tags" TEXT NOT NULL DEFAULT '[]',
-          "isFavorite" BOOLEAN NOT NULL DEFAULT false,
-          "scheduledAt" DATETIME,
-          "metadata" TEXT,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL,
-          CONSTRAINT "GeneratedPost_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-        )`);
-        await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "ResearchReport" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "userId" TEXT NOT NULL,
-          "projectId" TEXT,
-          "query" TEXT NOT NULL,
-          "source" TEXT NOT NULL,
-          "summary" TEXT NOT NULL,
-          "citations" TEXT,
-          "metadata" TEXT,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL,
-          CONSTRAINT "ResearchReport_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-        )`);
-        await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "Template" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "userId" TEXT NOT NULL,
-          "name" TEXT NOT NULL,
-          "topic" TEXT NOT NULL,
-          "type" TEXT NOT NULL,
-          "tone" TEXT NOT NULL,
-          "prompt" TEXT NOT NULL,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL,
-          CONSTRAINT "Template_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-        )`);
-        // Magic link token table for passwordless auth
-        await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "MagicLinkToken" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "email" TEXT NOT NULL,
-          "token" TEXT NOT NULL,
-          "expiresAt" DATETIME NOT NULL,
-          "used" BOOLEAN NOT NULL DEFAULT false,
-          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )`);
-        await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "MagicLinkToken_token_key" ON "MagicLinkToken"("token")`);
+        // Apply Prisma migrations idempotently (best for bundled desktop apps).
+        // SAFE TO RUN ON WEB MODE TOO — `migrate deploy` only applies pending.
+         
+        const { execSync } = await import('child_process');
+        try {
+          execSync('npx prisma migrate deploy --schema backend/prisma/schema.prisma', {
+            stdio: 'pipe',
+            timeout: 30_000,
+          });
+        } catch {
+          // Fallback: raw SQL for environments where the prisma CLI isn't shipped.
+          await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "User" (
+            "id" TEXT NOT NULL PRIMARY KEY,
+            "email" TEXT NOT NULL,
+            "name" TEXT,
+            "emailVerified" DATETIME,
+            "image" TEXT,
+            "passwordHash" TEXT,
+            "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" DATETIME NOT NULL
+          )`);
+          await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email")`);
+          await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "ContentProject" (
+            "id" TEXT NOT NULL PRIMARY KEY,
+            "userId" TEXT NOT NULL,
+            "title" TEXT NOT NULL,
+            "description" TEXT,
+            "status" TEXT NOT NULL DEFAULT 'draft',
+            "metadata" TEXT,
+            "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" DATETIME NOT NULL,
+            CONSTRAINT "ContentProject_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+          )`);
+          await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "GeneratedPost" (
+            "id" TEXT NOT NULL PRIMARY KEY,
+            "userId" TEXT NOT NULL,
+            "projectId" TEXT,
+            "platform" TEXT NOT NULL,
+            "content" TEXT NOT NULL,
+            "status" TEXT NOT NULL DEFAULT 'draft',
+            "tags" TEXT NOT NULL DEFAULT '[]',
+            "isFavorite" BOOLEAN NOT NULL DEFAULT false,
+            "scheduledAt" DATETIME,
+            "metadata" TEXT,
+            "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" DATETIME NOT NULL,
+            CONSTRAINT "GeneratedPost_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+          )`);
+          await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "ResearchReport" (
+            "id" TEXT NOT NULL PRIMARY KEY,
+            "userId" TEXT NOT NULL,
+            "projectId" TEXT,
+            "query" TEXT NOT NULL,
+            "source" TEXT NOT NULL,
+            "summary" TEXT NOT NULL,
+            "citations" TEXT,
+            "metadata" TEXT,
+            "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" DATETIME NOT NULL,
+            CONSTRAINT "ResearchReport_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+          )`);
+          await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "Template" (
+            "id" TEXT NOT NULL PRIMARY KEY,
+            "userId" TEXT NOT NULL,
+            "name" TEXT NOT NULL,
+            "topic" TEXT NOT NULL,
+            "type" TEXT NOT NULL,
+            "tone" TEXT NOT NULL,
+            "prompt" TEXT NOT NULL,
+            "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" DATETIME NOT NULL,
+            CONSTRAINT "Template_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+          )`);
+        }
 
-        // Ensure the desktop user exists (used as the owner for all local data)
-        if (isDesktop) {
-          await prisma.$executeRawUnsafe(`
-            INSERT OR IGNORE INTO "User" ("id","email","name","createdAt","updatedAt")
-            VALUES ('desktop-user','user@mint.local','You',datetime('now'),datetime('now'))
-          `);
+        // Auto-insert the single-user if running in desktop mode or DISABLE_AUTH.
+        if (isDesktop || config.disableAuth) {
+          await prisma.user.upsert({
+            where: { id: 'desktop-user' },
+            create: {
+              id: 'desktop-user',
+              email: 'user@mint.local',
+              name: 'You',
+            },
+            update: {},
+          });
         }
       } catch (migErr) {
-        console.error('Schema init warning (non-fatal):', migErr);
+        app.log.warn({ err: migErr }, 'Schema init warning (non-fatal)');
       }
 
       const port = Number(process.env.PORT || 4000);

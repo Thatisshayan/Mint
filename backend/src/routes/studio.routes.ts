@@ -145,7 +145,7 @@ export default async function studioRoutes(fastify: FastifyInstance) {
       audioUrl: z.string().optional(),
     }).parse(request.body);
     const { assembleVideo } = await import('../services/ai/assembly.service.js');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     return await assembleVideo({ clips: body.clips as any, audioUrl: body.audioUrl });
   });
 

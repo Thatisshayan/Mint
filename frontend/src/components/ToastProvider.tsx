@@ -25,10 +25,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     [removeToast]
   );
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Snapshot the current Map at unmount so we don't iterate a Map that's been
+  // swapped out by a later render.
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      timersRef.current.forEach((timer) => clearTimeout(timer));
+      timers.forEach((timer) => clearTimeout(timer));
     };
   }, []);
 

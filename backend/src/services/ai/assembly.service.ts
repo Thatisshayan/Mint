@@ -27,12 +27,16 @@ export async function assembleVideo({ clips, audioUrl, outputFormat = 'mp4' }: A
   const filterParts: string[] = [];
   let inputIndex = 0;
 
+  // Default duration (seconds) when caller doesn't specify it — keeps ffmpeg
+  // happy when concatenating images which have no intrinsic duration.
+  const DEFAULT_CLIP_DURATION = 5;
+
   for (const clip of clips) {
-    if (clip.source) {
-      parts.push(`-i`, clip.source);
-      filterParts.push(`[${inputIndex}:v]`);
-      inputIndex++;
-    }
+    if (!clip.source) continue;
+    parts.push('-i', clip.source);
+    parts.push('-t', String(clip.duration ?? DEFAULT_CLIP_DURATION));
+    filterParts.push(`[${inputIndex}:v]`);
+    inputIndex++;
   }
 
   try {
