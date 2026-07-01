@@ -10,7 +10,7 @@
 ;   start-mint.bat launches all services and opens the Settings page.
 
 #define MyAppName "MINT AI Content Workstation"
-#define MyAppVersion "0.3.2"
+#define MyAppVersion "0.3.3"
 #define MyAppPublisher "MINT"
 #define MyAppURL "https://github.com/Thatisshayan/Mint"
 #define MyAppExeName "start-mint.bat"
@@ -36,7 +36,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
-VersionInfoVersion=0.3.2
+VersionInfoVersion=0.3.3
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} (Personal Use) Setup
 VersionInfoProductName={#MyAppName}
