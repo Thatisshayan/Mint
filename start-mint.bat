@@ -71,8 +71,19 @@ echo   ComfyUI:   http://localhost:8188
 echo   Ollama:    http://localhost:11434
 echo   Piper TTS: %~dp0piper-tts\piper.exe
 echo ======================================
+echo   First time? Open the Settings page to choose a model:
+echo   http://localhost:5173/app/settings
+echo ======================================
 echo.
 echo Press any key to stop all services...
+
+:: Open the browser to the Settings page on first run so the user is guided
+:: straight to the one screen that fixes "nothing works" (model selection,
+:: service-health visibility, schema check).
+if not exist "%~dp0.first-run-done" (
+    start "" "http://localhost:5173/app/settings"
+    type NUL > "%~dp0.first-run-done"
+)
 pause >NUL
 
 :: Stop all services
