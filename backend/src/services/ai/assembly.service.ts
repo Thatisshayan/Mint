@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import { writeFile, unlink, mkdtemp, readFile, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { saveMintBlob } from '../outputPaths.js';
 
 const exec = promisify(execFile);
 
@@ -19,7 +20,7 @@ export interface AssemblyOptions {
   outputFormat?: string;
 }
 
-export async function assembleVideo({ clips, audioUrl, outputFormat = 'mp4' }: AssemblyOptions): Promise<{ url: string; format: string }> {
+export async function assembleVideo({ clips, audioUrl, outputFormat = 'mp4' }: AssemblyOptions): Promise<{ url: string; fileUrl?: string | null; format: string }> {
   const tmpDir = await mkdtemp(join(tmpdir(), 'mint-asm-'));
   const outputPath = join(tmpDir, `output.${outputFormat}`);
 
@@ -63,15 +64,28 @@ export async function assembleVideo({ clips, audioUrl, outputFormat = 'mp4' }: A
     const buffer = await readFile(outputPath);
     const base64 = buffer.toString('base64');
 
-// Cleanup
-     try { await unlink(outputPath); } catch (error) {
-       // Ignore cleanup errors
-     }
-     try { await rmdir(tmpDir); } catch (error) {
-       // Ignore cleanup errors
-     }
+    // Persist to MINT-output/video/ so it can be re-opened later
+    // from the Files view or copied out of the user-profile tree.
+    let fileUrl: string | null = null;
+    try {
+      fileUrl = saveMintBlob('video', outputFormat, buffer).publicUrl;
+    } catch (err) {
+      console.warn('Failed to persist video:', err);
+    }
 
-    return { url: `data:video/${outputFormat};base64,${base64}`, format: outputFormat };
+    // Cleanup
+    try { await unlink(outputPath); } catch (error) {
+      // Ignore cleanup errors
+    }
+    try { await rmdir(tmpDir); } catch (error) {
+      // Ignore cleanup errors
+    }
+
+    return {
+      url: `data:video/${outputFormat};base64,${base64}`,
+      fileUrl,
+      format: outputFormat,
+    };
 } catch (err) {
        try { await rmdir(tmpDir, { recursive: true }); } catch (error) {
          // Ignore cleanup errors

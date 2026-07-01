@@ -98,6 +98,7 @@ export async function buildApp() {
   await app.register((await import('./routes/template.routes.js')).default, { prefix: '/api' });
   await app.register((await import('./routes/export.routes.js')).default, { prefix: '/api' });
   await app.register((await import('./routes/settings.routes.js')).default, { prefix: '/api' });
+  await app.register((await import('./routes/files.routes.js')).default, { prefix: '/api' });
 
   // Serve frontend static files only in web/server mode (desktop uses Tauri's built-in asset server)
   const frontendDist = !isDesktop

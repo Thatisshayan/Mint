@@ -3,6 +3,8 @@ import { promisify } from 'util';
 import { writeFile, unlink, mkdtemp, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { randomUUID } from 'crypto';
+import { saveMintBlob } from '../outputPaths.js';
 
 const exec = promisify(execFile);
 
@@ -15,6 +17,7 @@ export interface TranscriptionResult {
   text: string;
   segments?: Array<{ start: number; end: number; text: string }>;
   language: string;
+  fileUrl?: string | null;
 }
 
 export async function transcribeAudio({ audioBase64, language = 'en' }: TranscriptionOptions): Promise<TranscriptionResult> {
@@ -29,7 +32,7 @@ export async function transcribeAudio({ audioBase64, language = 'en' }: Transcri
       timeout: 120_000,
     });
 
-try { await unlink(inputPath); } catch (error) {
+    try { await unlink(inputPath); } catch (error) {
        // Ignore cleanup errors
      }
      try { await rmdir(tmpDir, { recursive: true }); } catch (error) {
@@ -37,7 +40,31 @@ try { await unlink(inputPath); } catch (error) {
      }
 
     const result = JSON.parse(stdout) as { text: string; segments?: Array<{ start: number; end: number; text: string }> };
-    return { text: result.text || '', segments: result.segments, language };
+
+    // Persist the transcript to MINT-output/transcripts so it shows up in
+    // the Files view.
+    let fileUrl: string | null = null;
+    try {
+      fileUrl = saveMintBlob(
+        'transcripts',
+        'json',
+        JSON.stringify(
+          {
+            id: randomUUID(),
+            language,
+            transcribedAt: new Date().toISOString(),
+            text: result.text,
+            segments: result.segments,
+          },
+          null,
+          2,
+        ),
+      ).publicUrl;
+    } catch (err) {
+      console.warn('Failed to persist transcript:', err);
+    }
+
+    return { text: result.text || '', segments: result.segments, language, fileUrl };
   } catch {
     // Fallback: return empty transcription
     return { text: '', language };

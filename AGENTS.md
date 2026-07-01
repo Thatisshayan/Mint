@@ -72,9 +72,29 @@ MINT/
 
 ## Env
 
-- Backend: `backend/.env` — `JWT_SECRET`, `LLM_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_DEFAULT_MODEL`, `COMFYUI_BASE_URL`, `MONEY_PRINTER_BASE_URL`, `TTS_BASE_URL`/`EDGE_TTS_API`, `PIPER_EXECUTABLE`, `PIPER_VOICE_DIR`, `DATABASE_URL`, `DISABLE_AUTH`, `BRAVE_SEARCH_API_KEY`, `RESEARCH_PROVIDER`, `LANG` (optional)
+- Backend: `backend/.env` — `JWT_SECRET`, `LLM_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_DEFAULT_MODEL`, `COMFYUI_BASE_URL`, `MONEY_PRINTER_BASE_URL`, `TTS_BASE_URL`/`EDGE_TTS_API`, `PIPER_EXECUTABLE`, `PIPER_VOICE_DIR`, `DATABASE_URL`, `DISABLE_AUTH`, `BRAVE_SEARCH_API_KEY`, `RESEARCH_PROVIDER`, `OUTPUT_BASE_DIR` (single artifact folder, default `<USERPROFILE>\MINT-output`), `LANG` (optional)
 - Frontend: `frontend/.env` — `VITE_API_URL` (defaults to `/api`; `19421` for desktop bundle)
 - Prisma: `backend/prisma/.env` — `DATABASE_URL`
+
+## Output Layout
+
+By convention every file MINT writes goes under `OUTPUT_BASE_DIR` with these subfolders:
+
+| Subdir | Contents |
+|---|---|
+| `text/` | Saved text exports (.txt, .md, .json) |
+| `audio/` | TTS voiceovers (.mp3) — both data URL and disk file |
+| `video/` | ffmpeg assembly output + Money-Printer outputs (.mp4) |
+| `transcripts/` | Whisper transcription JSON |
+| `images/comfyui/` | ComfyUI's own writes — point ComfyUI's `--output-directory` here |
+| `exports/` | Full DB JSON backups from the Dashboard |
+
+Each save via `services/outputPaths.ts → saveMintBlob(subdir, ext, data)` creates the dir lazily and returns `{ absolutePath, filename, publicUrl: "/api/files/<subdir>/<name>" }`.
+
+Backend exposes:
+- `GET /api/files` — listing grouped by subdir
+- `GET /api/files/:subdir/:name` — single-file download (auth required, sanitized name, root-prefix guard against traversal)
+- `GET /api/files/_config` — the resolved output root, for the UI to show the user
 
 ## Local Services
 

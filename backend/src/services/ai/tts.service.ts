@@ -1,5 +1,7 @@
 const EDGE_TTS_API = 'https://api.edge-tts.com/v1/tts';
 
+import { saveMintBlob } from '../outputPaths.js';
+
 export interface TTSOptions {
   text: string;
   voice?: string;
@@ -9,6 +11,7 @@ export interface TTSOptions {
 
 export interface TTSResult {
   audioUrl: string;
+  fileUrl?: string | null;
   durationMs: number;
   format: string;
 }
@@ -49,10 +52,20 @@ export async function generateSpeech({
 
     const audioBuffer = await res.arrayBuffer();
     const base64 = Buffer.from(audioBuffer).toString('base64');
-    const dataUrl = `data:audio/mp3;base64,${base64}`;
+
+    // Save to MINT-output/audio/ so the user has a real file they can
+    // browse later through /app/files or open from disk. Inline data URL
+    // is also returned for immediate playback.
+    let fileUrl: string | null = null;
+    try {
+      fileUrl = saveMintBlob('audio', 'mp3', Buffer.from(audioBuffer)).publicUrl;
+    } catch (err) {
+      console.warn('Failed to persist TTS output:', err);
+    }
 
     return {
-      audioUrl: dataUrl,
+      audioUrl: `data:audio/mp3;base64,${base64}`,
+      fileUrl,
       durationMs: Math.round((text.split(' ').length / 150) * 60 * 1000),
       format: 'mp3',
     };

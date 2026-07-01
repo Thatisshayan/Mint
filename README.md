@@ -123,6 +123,30 @@ The Ollama provider is built to handle "anything that Ollama has installed". On 
 
 To force-pick a model without going through the UI, set `OLLAMA_DEFAULT_MODEL` in `backend/.env` (e.g. `OLLAMA_DEFAULT_MODEL=qwen2.5-coder:7b`).
 
+### Unified Output Folder
+
+By default every artifact MINT produces lands under **`<your home>/MINT-output/`**. Override with `OUTPUT_BASE_DIR` in `backend/.env`.
+
+```
+MINT-output/
+├── text/         Saved text exports (.txt, .md, .json)
+├── audio/        TTS voiceovers (.mp3)
+├── video/        Video assembly outputs (.mp4) and Money-Printer outputs
+├── transcripts/  Whisper transcripts (.json)
+├── images/
+│   └── comfyui/  ComfyUI's own output dir redirects here (configure COMFYUI's --output-directory)
+└── exports/      Full DB export (.json) drops here too
+```
+
+Browse them in-app at `/app/files` or list them via:
+```
+GET  /api/files                    # listing
+GET  /api/files/_config           # active output root path
+GET  /api/files/audio/{filename}  # download a single file (auth required)
+```
+
+Subfolders are created lazily on first write. Each save returns both an inline data URL (so the UI can still play / render immediately) and a `fileUrl` like `/api/files/audio/1720000000-aabbccdd.mp3`.
+
 
 ## Commands Reference
 

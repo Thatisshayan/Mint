@@ -7,6 +7,12 @@ echo   Starting MINT AI Content Workstation
 echo ======================================
 echo.
 
+:: MINT-output: single folder for every artifact the app produces.
+:: Default: %USERPROFILE%\MINT-output. Override with .env or this script.
+if not defined OUTPUT_BASE_DIR set "OUTPUT_BASE_DIR=%USERPROFILE%\MINT-output"
+echo   Output directory: %OUTPUT_BASE_DIR%
+echo.
+
 :: Detect Ollama path
 set "OLLAMA_PATH="
 where ollama >nul 2>&1
@@ -53,12 +59,12 @@ if exist "%COMFYUI_VENV%" (
 
 :: Start Backend
 echo [3/4] Starting MINT Backend...
-start "" /D "%~dp0backend" cmd /c "node --import tsx/esm src/index.ts"
+start "" /D "%~dp0backend" cmd /c "set OUTPUT_BASE_DIR=%OUTPUT_BASE_DIR% && node --import tsx/esm src/index.ts"
 timeout /t 5 >NUL
 
 :: Start Frontend
 echo [4/4] Starting MINT Frontend...
-start "" /D "%~dp0" cmd /c "node node_modules\vite\bin\vite.js --host"
+start "" /D "%~dp0" cmd /c "set OUTPUT_BASE_DIR=%OUTPUT_BASE_DIR% && node node_modules\vite\bin\vite.js --host"
 timeout /t 3 >NUL
 
 echo.

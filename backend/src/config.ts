@@ -1,3 +1,5 @@
+import { sep } from 'path';
+
 export const config = {
   env: process.env.NODE_ENV || 'development',
   port: Number(process.env.PORT || 4000),
@@ -18,10 +20,22 @@ export const config = {
   smtpPort: Number(process.env.SMTP_PORT || 587),
   smtpUser: process.env.SMTP_USER || '',
   smtpPass: process.env.SMTP_PASS || '',
-  emailFrom: process.env.EMAIL_FROM || 'MINT <noreply@mint.local>',
+  emailFrom: process.env.EMAIL_FROM || 'noreply@mint.local',
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   s3Endpoint: process.env.S3_ENDPOINT || '',
   s3AccessKey: process.env.S3_ACCESS_KEY || '',
   s3SecretKey: process.env.S3_SECRET_KEY || '',
   s3Region: process.env.S3_REGION || 'us-east-1',
+  // Single output folder for every artifact MINT produces: text exports,
+  // TTS audio, video assemblies, transcriptions, and any future feature.
+  // ComfyUI / Money-Printer-Turbo also write here if you point their own
+  // OUTPUT env vars at the matching subfolders (scripted by start-mint.bat).
+  outputBaseDir: process.env.OUTPUT_BASE_DIR || defaultOutputDir(),
 };
+
+function defaultOutputDir(): string {
+  // Personal single-user setup: <home>/MINT-output. Fallback to cwd if no
+  // home env var exists (rare; mainly CI scenarios).
+  const home = process.env.USERPROFILE || process.env.HOME || process.cwd();
+  return `${home}${sep}MINT-output`;
+}
