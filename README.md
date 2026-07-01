@@ -6,14 +6,14 @@ A personal AI content workstation for faceless YouTube channels. Generate script
 
 | Feature | Description |
 |---------|-------------|
-| **AI Studio** | Generate scripts, captions, thumbnails, hooks, video scenarios via Ollama (local) |
+| **AI Studio** | Generate scripts, captions, thumbnails, hooks, scenarios via Ollama (local) |
+| **Settings Page** | Pick which Ollama model to use; see service health (Ollama/ComfyUI/Piper/Money-Printer); run schema check |
 | **Research** | AI-powered research reports with competitor analysis |
 | **Projects** | Organize content into projects with status tracking |
 | **Library** | Save, tag, search, and favorite generated content |
-| **Publish Queue** | Schedule and manage content publishing |
-| **Dashboard** | Overview of recent activity, platform stats, quick actions |
-| **Dark/Light Mode** | System-aware theme toggle |
-| **Keyboard Shortcuts** | `Ctrl+G` generate, `Ctrl+S` save, `Ctrl+Shift+K` shortcuts modal |
+| **Publish Queue** | Queue generated drafts for review/publish; one-click from Studio |
+| **Dashboard** | Overview of recent activity, platform stats, AI usage + cost |
+| **Auto OAuth on first run** | Signs you in as a single desktop user; User row auto-provisioned — no setup |
 
 ## Tech Stack
 
@@ -28,16 +28,25 @@ A personal AI content workstation for faceless YouTube channels. Generate script
 
 ## Quick Start
 
-### Option 1: Windows Installer (Recommended)
+### Option 1: Windows Installer (Personal use)
 
-Download [`MINT_Setup_0.2.0.exe`](https://github.com/Thatisshayan/Mint/releases/download/v0.2.0/MINT_Setup_0.2.0.exe) from [Releases](https://github.com/Thatisshayan/Mint/releases/tag/v0.2.0). The smart installer:
+The Personal installer (`MINT_Setup_Personal_*.exe`, ~2.6 MB) is a **portable source-only build**. It:
 
-- Detects existing Ollama/ComfyUI installations
-- Downloads missing AI services automatically
-- Creates desktop shortcut and Start Menu entry
-- Runs Prisma migrations on first launch
+- Installs source + scripts to `C:\Program Files\MINT\` (writable by user)
+- Runs `npm install` for root + backend during install
+- Runs `prisma generate` + `prisma migrate deploy` once
+- Optionally installs Ollama and/or ComfyUI (tick in wizard)
+- On first launch, opens the **Settings page** automatically so you can pick a model
 
-### Option 2: Manual Install
+Build it yourself from a developer shell:
+```powershell
+& 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' `
+  'D:\AgentDevWork\repos\.mint\MINT\installer\MINT_Setup_Personal.iss'
+```
+Output: `installer/output/MINT_Setup_Personal_<version>.exe`
+
+### Option 2: Manual Install (faster, no install needed)
+
 
 ```bash
 git clone https://github.com/Thatisshayan/Mint.git
@@ -59,14 +68,24 @@ npx vite --host                                 # Start frontend on :5173
 
 Open http://localhost:5173 — click "Continue" to enter (dev auto-auth).
 
+### First Run
+
+After starting the app for the first time, `start-mint.bat` opens **http://localhost:5173/app/settings** automatically. From there:
+
+1. Pick which Ollama model to use (anything installed will be detected).
+2. Click **Save selection** — the AI provider now uses that model.
+3. (Optional) tick "Install Ollama" / "Install ComfyUI" in the `installer/MINT_Service_Installers` folder if you don't already have them.
+
+The flag file `.first-run-done` in the project root prevents auto-opening the Settings page on subsequent launches. Delete it to re-trigger.
+
 ## Local AI Services
 
 | Service | Port | Purpose | Setup |
 |---------|------|---------|-------|
-| **Ollama** | 11434 | LLM text generation | Already installed (llama3.2) |
-| **ComfyUI** | 8188 | Image generation | Installed at `D:\AgentDevWork\Programs\comfyui\` |
-| **Piper TTS** | — | Text-to-speech | Installed at `D:\AgentDevWork\Programs\piper-tts\` |
-| **Money Printer Turbo** | 8501 | Video generation | (Optional) Clone to `D:\AgentDevWork\Programs\money-printer-turbo\` |
+| **Ollama** | 11434 | LLM text generation | Auto-discovered: `/api/settings/services` lists installed models. Settings page lets you pick one. |
+| **ComfyUI** | 8188 | Image generation | Optional. Set `COMFYUI_BASE_URL` in `.env` to your instance. |
+| **Piper TTS** | — | Text-to-speech | Optional. Path configured via `PIPER_EXECUTABLE`. |
+| **Money Printer Turbo** | 8501 | Video generation | Optional. Skip if not installed — the Studio Video button gracefully no-ops. |
 
 ### Configuration
 
@@ -92,11 +111,18 @@ BRAVE_SEARCH_API_KEY=
 
 ### Services Status
 
-- **Ollama**: Running with llama3.2 (2GB VRAM, fits RTX 2060)
-- **ComfyUI**: Running with SD 1.5 model (~4GB VRAM)
-- **Piper TTS**: Installed with en_US-amy-medium voice
-- **Backend**: Running on http://localhost:4000
-- **Frontend**: Running on http://localhost:5173
+After first boot, the **Settings** page (`/app/settings`) shows live reachability for Ollama, ComfyUI, Money-Printer-Turbo, and Piper. Ollama's installed models are listed there. No need to hand-edit `.env` unless your services live at non-default ports.
+
+### AI Models
+
+The Ollama provider is built to handle "anything that Ollama has installed". On each AI call, the backend will:
+
+1. Call `GET /api/tags` on Ollama (cached 30 s).
+2. Pick a model automatically: your saved preference → preferred ordering → smallest installed.
+3. Use it for the next call.
+
+To force-pick a model without going through the UI, set `OLLAMA_DEFAULT_MODEL` in `backend/.env` (e.g. `OLLAMA_DEFAULT_MODEL=qwen2.5-coder:7b`).
+
 
 ## Commands Reference
 
