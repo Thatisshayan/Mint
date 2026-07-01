@@ -69,6 +69,16 @@ const NAV = [
     ),
   },
   {
+    label: 'Files',
+    to: '/app/files',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M9 2H3a1 1 0 00-1 1v9a1 1 0 001 1h10a1 1 0 001-1V6l-5-4z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" fill="none" />
+        <path d="M9 2v4h5" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" fill="none" />
+      </svg>
+    ),
+  },
+  {
     label: 'Settings',
     to: '/app/settings',
     icon: (

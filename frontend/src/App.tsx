@@ -14,6 +14,7 @@ const Publish = lazy(() => import('@/pages/Publish'));
 const Research = lazy(() => import('@/pages/Research'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Settings = lazy(() => import('@/pages/Settings'));
+const Files = lazy(() => import('@/pages/Files'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 export default function App() {
@@ -43,6 +44,7 @@ export default function App() {
                         <Route path="research" element={<Research />} />
                         <Route path="library" element={<Library />} />
                         <Route path="publish" element={<Publish />} />
+                        <Route path="files" element={<Files />} />
                         <Route path="settings" element={<Settings />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
