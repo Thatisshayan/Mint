@@ -10,7 +10,7 @@
 ;   start-mint.bat launches all services and opens the Settings page.
 
 #define MyAppName "MINT AI Content Workstation"
-#define MyAppVersion "0.3.0"
+#define MyAppVersion "0.3.1"
 #define MyAppPublisher "MINT"
 #define MyAppURL "https://github.com/Thatisshayan/Mint"
 #define MyAppExeName "start-mint.bat"
@@ -36,7 +36,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
-VersionInfoVersion=0.3.0
+VersionInfoVersion=0.3.1
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} (Personal Use) Setup
 VersionInfoProductName={#MyAppName}
@@ -112,9 +112,13 @@ Filename: "{app}\installer\download-comfyui.bat"; Parameters: "{app}"; StatusMsg
 Filename: "cmd"; Parameters: "/c cd /d ""{app}"" && npm install"; StatusMsg: "Installing npm dependencies (frontend)..."; Flags: runhidden waituntilterminated
 Filename: "cmd"; Parameters: "/c cd /d ""{app}\backend"" && npm install"; StatusMsg: "Installing npm dependencies (backend)..."; Flags: runhidden waituntilterminated
 
-; Generate Prisma client + run migrations
+; Generate Prisma client.
 Filename: "cmd"; Parameters: "/c cd /d ""{app}\backend"" && npx prisma generate --schema prisma/schema.prisma"; StatusMsg: "Generating Prisma client..."; Flags: runhidden waituntilterminated
-Filename: "cmd"; Parameters: "/c cd /d ""{app}\backend"" && npx prisma migrate deploy --schema prisma/schema.prisma"; StatusMsg: "Running database migrations..."; Flags: runhidden waituntilterminated
+
+; Run migrations. If the DB already has tables but no migration history
+; (typical when bundled raw-SQL ran on first start), 'deploy' fails with
+; P3005. Try 'resolve --applied' first to baseline, then deploy.
+Filename: "cmd"; Parameters: "/c cd /d ""{app}\backend"" && npx prisma migrate resolve --applied 20260628094810_init --schema prisma/schema.prisma 2>NUL & npx prisma migrate deploy --schema prisma/schema.prisma"; StatusMsg: "Running database migrations..."; Flags: runhidden waituntilterminated
 
 ; Launch the app — start-mint.bat handles service orchestration + first-run Settings redirect
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; WorkingDir: "{app}"; Flags: nowait postinstall skipifsilent
