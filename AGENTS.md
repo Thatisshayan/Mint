@@ -14,12 +14,12 @@
 ```
 MINT/
 ├── frontend/src/
-│   ├── pages/           # Landing, Dashboard, Projects, Studio, Research, Library, Publish, Settings, NotFound
+│   ├── pages/           # Landing, Dashboard, Projects, Studio, Research, Library, Publish, Files, Settings, NotFound
 │   ├── components/
 │   │   ├── layout/      # AppShell (sidebar + header), AppLayout, RouteGuard
 │   │   └── ui/          # shadcn/ui primitives (Button, Input, Skeleton, Loading)
 │   ├── hooks/           # useSession, useOnlineStatus, useKeyboardShortcuts, useTheme, useDesktop
-│   ├── stores/          # TanStack-Query hooks (library, projects, publish, research, studio, templates)
+│   ├── stores/          # TanStack-Query hooks (library, projects, publish, research, studio, templates, files)
 │   ├── context/         # themeContext, toastContext
 │   └── lib/api/         # fetchWrapper, client, auth
 ├── backend/src/

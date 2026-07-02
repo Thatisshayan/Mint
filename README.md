@@ -12,6 +12,7 @@ A personal AI content workstation for faceless YouTube channels. Generate script
 | **Projects** | Organize content into projects with status tracking |
 | **Library** | Save, tag, search, and favorite generated content |
 | **Publish Queue** | Queue generated drafts for review/publish; one-click from Studio |
+| **Files page** | Browse every file in the unified output folder (voiceovers, transcripts, video, text exports, ComfyUI / MPT outputs) with inline audio/video previews |
 | **Dashboard** | Overview of recent activity, platform stats, AI usage + cost |
 | **Auto OAuth on first run** | Signs you in as a single desktop user; User row auto-provisioned — no setup |
 
