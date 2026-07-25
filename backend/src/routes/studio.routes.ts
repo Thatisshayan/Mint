@@ -124,9 +124,22 @@ export default async function studioRoutes(fastify: FastifyInstance) {
   fastify.get('/studio/generate-video/:taskId', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { taskId } = request.params as { taskId: string };
     const mptUrl = process.env.MONEY_PRINTER_URL || 'http://localhost:8501';
-    const res = await fetch(`${mptUrl}/api/v1/video/status/${taskId}`, { signal: AbortSignal.timeout(10_000) });
+    const res = await fetch(`${mptUrl}/api/v1/tasks/${taskId}`, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) return { status: 'unknown', taskId };
-    return await res.json();
+    const body = await res.json() as {
+      data?: { state?: string; videos?: string[]; combined_videos?: string[] };
+    };
+    const data = body.data ?? (body as { state?: number | string; videos?: string[]; combined_videos?: string[] });
+    const videoPath = data.videos?.[0] ?? data.combined_videos?.[0];
+    let status: string;
+    if (data.state === 1) status = 'finished';
+    else if (data.state === -1) status = 'failed';
+    else status = 'processing';
+    return {
+      status,
+      taskId,
+      videoUrl: videoPath ? `${mptUrl}/api/v1/download/${videoPath}` : undefined,
+    };
   });
 
   fastify.post('/studio/search-stock', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
