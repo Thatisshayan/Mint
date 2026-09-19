@@ -3,15 +3,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockWsInstances: any[] = [];
 
 vi.mock('ws', () => {
+  type Listener = (...args: any[]) => void;
+
   class MockWebSocket {
     static OPEN = 1;
     readyState = 0;
-    listeners: Record<string, Function[]> = {};
+    listeners: Record<string, Listener[]> = {};
     sentMessages: string[] = [];
     constructor(public url: string) {
       mockWsInstances.push(this);
     }
-    on(event: string, cb: Function) {
+    on(event: string, cb: Listener) {
       (this.listeners[event] ||= []).push(cb);
       return this;
     }
