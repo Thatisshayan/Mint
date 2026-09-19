@@ -1,6 +1,11 @@
+> **⚠️ Stale/unmaintained scaffold.** Every item below is actually DONE (test suite,
+> real JWT, token expiry, migrations, error handling, and rate limiting all exist and
+> ship) — this table was never updated after being created. For the live task
+> tracker, see `KANBAN.md`.
+
 # MINT Project Documentation
 
-## Task Inventory
+## Task Inventory (historical — see banner above)
 | Task ID | Task Description | Status | Priority |
 |---------|------------------|--------|----------|
 | 1       | Add test suite (backend frontend) | PENDING | P0 |

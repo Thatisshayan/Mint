@@ -1,3 +1,8 @@
+> **⚠️ Historical.** Describes the old 88MB "smart installer" (`MINT_Setup.iss`),
+> superseded by the ~10MB source-only Personal installer
+> (`installer/MINT_Setup_Personal.iss`) — see README's "Local AI Services" table and
+> `docs/GETTING_STARTED.md` for current setup instructions.
+
 # MINT Local AI Bundle
 
 Goal: Open MINT and have the local generation stack ready.

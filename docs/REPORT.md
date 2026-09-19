@@ -1,3 +1,6 @@
+> **⚠️ Historical.** Point-in-time snapshot from June 2026. For current state, see
+> `GROUND_TRUTH.md`; for prior audits, see `audits/`.
+
 # MINT Full Audit + Working-Product Report
 
 Current status: Working MVP with local AI services.

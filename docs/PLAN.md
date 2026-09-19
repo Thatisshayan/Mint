@@ -1,3 +1,6 @@
+> **⚠️ Historical.** Point-in-time plan from June 2026. For current state, see
+> `GROUND_TRUTH.md`; for current backlog, see `TODO.md` / `KANBAN.md`.
+
 # MINT Delivery Plan
 
 Goal: make MINT a working personal product for faceless YouTube / Instagram content, using zero-cost local AI services.
