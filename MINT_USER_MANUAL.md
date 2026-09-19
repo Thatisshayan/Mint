@@ -27,7 +27,7 @@ Target audience: YouTube Shorts creators, Instagram reel makers, and digital con
 ├────────────────────────────────────────────────────────────────┤
 │  Text AI     │  Media Services     │  Integrations              │
 │  ─────────── │  ─────────────────  │  ───────────────────       │
-│  Ollama      │  Piper TTS (voice)  │  Brave Search (research)   │
+│  Ollama      │  Piper TTS (voice)  │  GPT Researcher (research) │
 │  DeepSeek    │  ComfyUI (images)   │  MoneyPrinterTurbo (video) │
 │  OpenAI      │                     │                            │
 ├────────────────────────────────────────────────────────────────┤
@@ -86,15 +86,23 @@ The core feature. Generate content via AI.
 
 ### 4. Research (`/app/research`)
 
-Competitor and keyword research tool powered by AI.
+Competitor and keyword research tool with **real web search**.
 
 **What you can do:**
 - Enter a topic or keyword to analyze
-- MINT sends your query to the backend (`POST /api/research`)
-- Backend uses the AI provider to generate a structured research report
-- Results include competitive analysis, content gaps, and trend insights
+- If the optional GPT Researcher service is running, MINT streams live progress
+  ("searching...", "reading source 3/8...") and returns a report backed by real,
+  cited sources — click through to any source link
+- If GPT Researcher isn't installed/running, MINT falls back to asking the local
+  LLM to guess at trends instead (same as before v0.4.0) — reports show a
+  "Web Research" or "AI Guess" badge so you always know which kind you're looking at
 
-**Tech:** AI-powered research via Ollama/DeepSeek/OpenAI provider.
+**Tech:** GPT Researcher (DuckDuckGo retriever, local Ollama for synthesis) over a
+WebSocket, with an LLM-guess fallback via the same Ollama/DeepSeek/OpenAI provider
+chain the rest of MINT uses. See `docs/AI_PROVIDERS.md` and the
+`docs/superpowers/specs/2026-09-19-gpt-researcher-design.md` design doc.
+**Setup:** optional installer checkbox, or `pip install gpt-researcher` manually —
+see the README's Local AI Services table.
 
 ---
 
@@ -263,7 +271,7 @@ npm run backend:build    # Build backend for production
 | **Auth** | ⚠️ Dev-only | Magic link with real JWT, hardcoded verification |
 | **Projects CRUD** | ✅ Functional | Create + list + view projects |
 | **Content Studio** | ✅ Functional | Generates via backend AI provider abstraction (Ollama/DeepSeek/OpenAI) |
-| **Research** | ✅ Functional | AI-powered research reports via backend |
+| **Research** | ✅ Functional | Real web research via GPT Researcher (optional), falls back to AI-guessed reports |
 | **Library** | ✅ Functional | SQLite-backed content storage |
 | **Publish** | ✅ Functional | Queue management via Prisma |
 | **Image Generation** | ✅ Functional | ComfyUI wired via `/studio/generate-image` |

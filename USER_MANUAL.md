@@ -1,5 +1,11 @@
 # MINT User Manual
 
+> **⚠️ Superseded — [MINT_USER_MANUAL.md](MINT_USER_MANUAL.md) is the current, maintained
+> user manual as of v0.4.0 (2026-09-19).** This file is kept for history per
+> `REPO_RULES.md` R15 (mark superseded docs rather than delete them silently) — it
+> was never actually deleted, but the content below is stale (still describes v0.2.0)
+> and should not be treated as current.
+
 > **MINT** — Personal AI Content Workstation for Faceless YouTube Channels
 > Version: 0.2.0 | Last updated: June 2026
 
