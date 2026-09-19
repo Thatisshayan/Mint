@@ -13,7 +13,7 @@ follow later as separate specs).
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Search retriever | DuckDuckGo | No API key — matches MINT's "no cloud keys needed for basic usage" philosophy (same reasoning as Ollama-first). |
+| Search retriever | DuckDuckGo | No API key — matches MINT's "no cloud keys needed for basic usage" philosophy (same reasoning as Ollama-first). **Known risk**: unlike Tavily, DuckDuckGo has no official search API — the retriever works against an unofficial endpoint that's known to rate-limit or break without notice. If it degrades often in practice, the fallback path becomes the common path; if that happens post-launch, revisit toward the "Tavily key, DuckDuckGo fallback" option we discussed and rejected for v1. |
 | Run mode | Persistent local service, port `8002` | Matches the existing Ollama/ComfyUI/MPT pattern; enables live progress streaming; shows up on Settings page like the others. |
 | LLM for synthesis | Reuse MINT's Ollama (`FAST_LLM`/`SMART_LLM` → same model as Settings' selected Ollama model) | No new model download, no cloud key, consistent with the rest of the app. |
 | Fallback | Old LLM-guess behavior, tagged distinctly | Same shape as the existing AI-provider circuit breaker (Ollama→DeepSeek→OpenAI) — Research must never just break if the service isn't running. |
@@ -78,8 +78,12 @@ GPT Researcher server (NEW local service, Python, port 8002)
   `?token=` query param (WS handshakes can't carry an Authorization header from the
   browser) using the same `jwt.verify()` call `authMiddleware` uses; reject the
   connection (close with an auth error code) if missing/invalid. Dev mode keeps its
-  existing auto-verify-dummy-token behavior. Then call `gptResearcher.service.ts`'s
-  `runResearch()`.
+  existing auto-verify-dummy-token behavior.
+  **Known tradeoff**: tokens in URLs can leak into server access logs, browser history,
+  and any intermediate proxy — a generally-discouraged pattern. Accepted here because
+  MINT is single-user and localhost-only (same risk class as the dev-mode dummy token
+  already in use), but flagging it rather than presenting it as risk-free.
+  Then call `gptResearcher.service.ts`'s `runResearch()`.
   - Try the real service first. On connection failure, immediately fall back to the
     existing `researchPrompt()` LLM-guess path and stream a single "using fallback"
     progress event so the frontend can show that distinction, then the final report.
@@ -90,9 +94,20 @@ GPT Researcher server (NEW local service, Python, port 8002)
   fallback implementation, just reused as-is.
 
 ### `backend/src/services/research.service.ts` (modified)
-- `createResearch()`: input schema gains optional `citations: string` (JSON array of
-  `{title, url}`) and `source` already exists as a required field — no schema change,
-  just start populating `citations` meaningfully instead of leaving it `undefined`.
+- **Pre-existing bug this work depends on fixing**: `createResearch()`'s Zod input
+  schema only accepts `{ projectId, query, summary }` — it does not accept a `source`
+  at all; the Prisma write hardcodes `source: 'ai'` regardless of what the caller
+  computed. (The current route already papers over this: it returns
+  `source: result.provider` in the HTTP response, but the *persisted* DB row is always
+  `'ai'` — response and stored data already disagree today.) This spec's
+  `'gpt-researcher'` / `'ai-fallback'` tagging is meaningless unless this is fixed
+  first.
+- Fix: add `source: z.string()` to `createResearchSchema`, pass it through to the
+  Prisma `data` object instead of the hardcoded literal. Update the existing
+  `POST /research` route to pass `source: result.provider` through explicitly (making
+  today's silent mismatch correct as a side effect).
+- Add `citations: z.string().optional()` (JSON array of `{title, url}`) to the same
+  schema, passed through to Prisma's `data.citations`.
 
 ### `backend/src/routes/settings.routes.ts` (modified)
 - `gatherStatuses()` gains a fifth entry, following the exact `if (comfy) { out.push(...) }` pattern ComfyUI/MPT already use: only pushed into the `services` array when `GPT_RESEARCHER_BASE_URL` is set in `.env`, defaulting to `http://localhost:8002` — `{ name: 'gpt-researcher', url: gptResearcherUrl, reachable: await ping(gptResearcherUrl), detail: 'Real web research for the Research page.' }`.
@@ -124,6 +139,19 @@ store but isn't called from this page today). This needs:
   in one report).
 - **Frontend WS drop** (browser tab backgrounded, network blip) → one automatic
   reconnect attempt; if that also fails, show the same inline error state.
+
+## Known Gap: Model Selection Desync
+
+MINT lets the user change the active Ollama model at runtime via
+`POST /settings/ollama-model`, which the rest of the app picks up immediately
+(`resetAIProvider()`). The GPT Researcher service, by contrast, reads
+`FAST_LLM`/`SMART_LLM` from its own `.env` once at process startup — a model change in
+Settings will **not** propagate to Research until the GPT Researcher service is
+restarted. Not fixing this in v1 (it would mean either restarting the Python process on
+every Settings change, or building a config-reload endpoint into the wrapper server —
+both add real scope). Documented here so it's a known, deliberate limitation rather
+than a surprise: the Settings page's reachability row should note "model set at service
+startup" in its `detail` text so this isn't silently confusing.
 
 ## Testing
 
