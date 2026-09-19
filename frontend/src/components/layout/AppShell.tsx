@@ -1,5 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { motion, AnimatePresence, type Variants, type Easing } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+
+// framer-motion doesn't reliably export an `Easing` type across minor versions
+// (renamed/relocated more than once); define the shape we actually need.
+type Easing = readonly [number, number, number, number];
 import { useTheme } from '@/hooks/useTheme';
 
 const _EASE: Easing = [0.25, 0.46, 0.45, 0.94] as unknown as Easing;
