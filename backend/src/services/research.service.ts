@@ -5,6 +5,8 @@ const createResearchSchema = z.object({
   projectId: z.string().min(1).optional(),
   query: z.string().min(1).max(2000),
   summary: z.string().optional(),
+  source: z.string().default('ai'),
+  citations: z.array(z.object({ title: z.string(), url: z.string() })).optional(),
 });
 
 export async function createResearch(userId: string, input: unknown) {
@@ -23,8 +25,9 @@ export async function createResearch(userId: string, input: unknown) {
     data: {
       projectId,
       query: data.query,
-      source: 'ai',
+      source: data.source,
       summary: data.summary || `${data.query}\n\n[research placeholder]`,
+      citations: data.citations ? JSON.stringify(data.citations) : undefined,
       userId,
     },
   });

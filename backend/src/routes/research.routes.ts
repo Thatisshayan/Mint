@@ -37,6 +37,7 @@ export default async function researchRoutes(fastify: FastifyInstance) {
       projectId: undefined,
       query: body.query,
       summary: result.output,
+      source: result.provider,
     });
 
     return {
