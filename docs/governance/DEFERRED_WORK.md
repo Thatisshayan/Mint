@@ -29,3 +29,25 @@ Rule 12 / Rule 11. This register survives the session. Future agents resume from
   these tools' full finding detail isn't readable via the GitHub API/CLI
   used in this session. — Resume hint: open the linked dashboards from PR
   #3's check list. — Status: open.
+- [2026-09-19] installer-secret-scan-gap: all three installer `.iss` scripts
+  (`MINT_Setup.iss`, `MINT_Setup_Lite.iss`, `MINT_Setup_Personal.iss`) bundled
+  `backend/.env` (and `MINT_Setup.iss`/`MINT_Setup_Lite.iss` also bundled root
+  `.env`) directly into the compiled installer `.exe`. Discovered when
+  building the v0.4.0 installer: this machine's `backend/.env` had a live
+  `TAVILY_SEARCH_API_KEY` in it, which would have shipped inside the .exe and
+  potentially into a public GitHub Release asset. Fixed by removing all
+  `.env`/`backend\.env` `Source:` lines from all three `.iss` files — the app
+  runs on safe built-in defaults with no `.env` present, `.env.example`
+  templates still ship. — Deferred part: the repo's CI `secret-scan` (R30/R32)
+  only scans committed files; it has no visibility into locally-built binary
+  artifacts (the installer `.exe`), so this class of leak is structurally
+  invisible to the existing gate. — Resume hint: consider a pre-release
+  checklist item (or a `scripts/verify.sh` addition) that greps compiled
+  installer output for common secret patterns before any release is cut, not
+  just before commits. — Status: root cause fixed in this session; the
+  detection gap itself is still open. **Also unresolved: whether any of the
+  publicly-downloadable v0.3.0–v0.3.3 installer releases on GitHub shipped a
+  real secret — not verifiable from git history since `.env` was always
+  gitignored. Recommend rotating any API keys that were ever placed in
+  `backend/.env` on a machine that built one of those releases, out of an
+  abundance of caution.**

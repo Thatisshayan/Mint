@@ -85,7 +85,9 @@ Source: "..\app-icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\backend\package.json"; DestDir: "{app}\backend"; Flags: ignoreversion
 Source: "..\backend\tsconfig.json"; DestDir: "{app}\backend"; Flags: ignoreversion
 Source: "..\backend\tsconfig.build.json"; DestDir: "{app}\backend"; Flags: ignoreversion
-Source: "..\backend\.env"; DestDir: "{app}\backend"; Flags: ignoreversion
+; NOTE: backend/.env is intentionally NOT bundled here — it's a developer's
+; local file that may contain real API keys/secrets. Only the template ships;
+; the app runs on safe built-in defaults with no .env present at all.
 Source: "..\backend\.env.example"; DestDir: "{app}\backend"; Flags: ignoreversion
 
 ; Top-level scripts
