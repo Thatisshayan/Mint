@@ -8,6 +8,7 @@ import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
 import helmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
+import websocket from '@fastify/websocket';
 import { ZodError } from 'zod';
 import { config } from './config.js';
 import { connectDb, disconnectDb, prisma } from './services/db.js';
@@ -38,6 +39,8 @@ export async function buildApp() {
   // Security headers via Helmet
    
   await app.register(helmet as any, { contentSecurityPolicy: false });
+
+  await app.register(websocket);
 
   // Rate limiting: disable in desktop mode
   if (!isDesktop) {

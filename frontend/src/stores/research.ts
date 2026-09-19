@@ -3,8 +3,7 @@ import { apiClient } from '@/lib/api/client';
 
 export function useResearch(projectId?: string) {
   return useQuery({
-    queryKey: ['research', projectId],
-    enabled: Boolean(projectId),
+    queryKey: ['research', projectId ?? null],
     queryFn: async () => {
       const url = projectId ? `/research?projectId=${encodeURIComponent(projectId)}` : '/research';
       const res = await apiClient.get(url);

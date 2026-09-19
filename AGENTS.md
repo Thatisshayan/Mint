@@ -119,6 +119,9 @@ Backend exposes:
 - **ComfyUI**: http://localhost:8188 (optional) — only needed for `Generate Image`
 - **Piper TTS**: `D:\AgentDevWork\Programs\piper-tts\piper.exe` (optional) — speech synthesis
 - **Money Printer Turbo**: http://localhost:8501 (optional) — video assembly
+- **GPT Researcher**: http://localhost:8002 (optional) — real web research for
+  `/app/research`; falls back to an LLM guess if unreachable. Uses DuckDuckGo (no
+  API key) and MINT's own Ollama for synthesis.
 
 ## Auth
 
