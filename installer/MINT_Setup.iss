@@ -68,7 +68,9 @@ Source: "..\index.html"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\vite-env.d.ts"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\app-icon.png"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\app-icon.ico"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\.env"; DestDir: "{app}"; Flags: ignoreversion
+; NOTE: .env / backend\.env intentionally NOT bundled — developer's local
+; files may contain real API keys/secrets. App runs on safe built-in
+; defaults with no .env present at all.
 
 ; Scripts
 Source: "..\start-mint.bat"; DestDir: "{app}"; Flags: ignoreversion
@@ -76,7 +78,6 @@ Source: "..\stop-mint.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\package.json"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Backend files
-Source: "..\backend\.env"; DestDir: "{app}\backend"; Flags: ignoreversion
 Source: "..\backend\package.json"; DestDir: "{app}\backend"; Flags: ignoreversion
 Source: "..\backend\prisma\*"; DestDir: "{app}\backend\prisma"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.db,*.db-journal,*.db-shm,*.db-wal,*.sqlite,*.sqlite-journal,*.sqlite-shm,*.sqlite-wal"
 Source: "..\backend\src\*"; DestDir: "{app}\backend\src"; Flags: ignoreversion recursesubdirs createallsubdirs
