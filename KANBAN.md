@@ -39,3 +39,8 @@
 | 29 | Update documentation | DONE | README, ARCHITECTURE, AGENTS, GETTING_STARTED, AI_PROVIDERS, GROUND_TRUTH, TODO |
 | 30 | Create Windows installer | DONE | Inno Setup smart installer (88MB), auto-detect services, desktop shortcut |
 | 31 | Update all docs for installer | DONE | README, ARCHITECTURE, AGENTS, GETTING_STARTED, BUNDLE, GROUND_TRUTH, USER_MANUAL, TODO, KANBAN |
+| 32 | Repo governance bootstrap | DONE | REPO_RULES.md, REPO_DIRECTIVE.md, CI gate (`.github/workflows/gate.yml`), branch protection on `main` |
+| 33 | Fix desktop/installer app icon | DONE | Installer shortcuts had no `IconFilename` (showed the generic .bat icon); Tauri icon set regenerated too |
+| 34 | Fix Money Printer Turbo API integration | DONE | Was calling endpoints/response shapes that didn't match MPT's real API — videos could never be detected as finished |
+| 35 | Fix build-breaking framer-motion version drift | DONE | Pinned exact version; code no longer depends on framer-motion's own (churning) type exports |
+| 36 | GPT Researcher integration for Research page | DONE | Real web research (DuckDuckGo + local Ollama), live progress, citations, LLM-guess fallback. Not live-verified — see `docs/governance/DEFERRED_WORK.md` |

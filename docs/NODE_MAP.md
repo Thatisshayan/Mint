@@ -1,3 +1,7 @@
+> **⚠️ Stale/unmaintained scaffold.** References files that no longer exist
+> (`AppHome.tsx`, `backend/src/routes/auth.ts`) — never kept in sync with the codebase.
+> For current project structure, see `AGENTS.md`'s "Project structure" section.
+
 # MINT Node Reference Map
 
 ## Key Files & Their Roles

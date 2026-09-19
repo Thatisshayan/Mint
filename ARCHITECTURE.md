@@ -43,11 +43,13 @@ On first launch, `start()` runs `CREATE TABLE IF NOT EXISTS` for all models (no 
 | `/api/auth/*` | Magic link, verify, refresh, logout, me |
 | `/api/projects/*` | ContentProject CRUD |
 | `/api/studio/*` | AI generation (text, image, voice, video, stock, assembly, transcribe, ideas, cost stats, rating) |
-| `/api/research/*` | AI research reports CRUD |
+| `/api/research/*` | Research reports CRUD + `GET /research/stream` (WS) — real web research via GPT Researcher with an LLM-guess fallback |
 | `/api/library/*` | GeneratedPost CRUD + search + favorites |
 | `/api/publish/*` | Publish queue CRUD |
 | `/api/templates/*` | Template CRUD |
 | `/api/export/*` | Full export / restore |
+| `/api/files/*` | Browse the unified output folder |
+| `/api/settings/*` | Local-service reachability, Ollama model selection, migration self-test |
 
 ### Auth Middleware
 
@@ -81,6 +83,16 @@ Circuit breaker: opens after 3 consecutive failures, recovers after 60s.
 | **ComfyUI** | http://localhost:8188 | Image generation (SD 1.5) |
 | **Piper TTS** | Local binary | Text-to-speech |
 | **Money Printer Turbo** | http://localhost:8501 | Video generation (optional) |
+| **GPT Researcher** | http://localhost:8002 | Real web research for `/app/research` (optional, DuckDuckGo + MINT's Ollama) |
+
+### `/api/research/stream` (WebSocket)
+
+Auth via `?token=` query param (WS handshakes can't carry an `Authorization` header)
+verified the same way as the HTTP JWT flow. On a query: tries GPT Researcher first,
+streaming `progress` messages and a final `done` message with `report` + `sources`;
+on any failure (unreachable, mid-run error) falls back to the same LLM-guess path
+`POST /research` always used, tagging the persisted report's `source` as
+`gpt-researcher` or `ai-fallback` so the frontend can show which kind of report it is.
 
 ## Frontend (React 18 + Vite 6)
 
@@ -107,9 +119,11 @@ Circuit breaker: opens after 3 consecutive failures, recovers after 60s.
   /app/dashboard    → Dashboard (stats, quick actions)
   /app/projects     → Projects (CRUD)
   /app/studio       → ContentGenerator (AI generation)
-  /app/research     → Research reports
+  /app/research     → Research (live progress, citations, GPT Researcher or LLM-guess)
   /app/library      → Saved content (search, filter, favorites)
   /app/publish      → Publish queue
+  /app/files        → Browse the unified output folder
+  /app/settings     → Local-service status, Ollama model picker
   *                 → NotFound
 ```
 
@@ -151,16 +165,19 @@ npm run backend:build  # esbuild bundle + Prisma copy
 
 ### Windows Installer
 
-Smart installer built with Inno Setup (`installer/MINT_Setup.iss`):
-- Bundles MINT source + Piper TTS (~88MB)
-- Auto-detects existing Ollama/ComfyUI
-- Downloads missing AI services during setup
-- Creates desktop shortcut + Start Menu entry
+Personal installer (`installer/MINT_Setup_Personal.iss`, ~10MB, source-only — the
+active/documented one, see README):
+- Ships source only; `npm install` runs on the user's machine post-install
+- Auto-detects existing Ollama/ComfyUI/GPT Researcher, downloads missing ones during setup
+- Creates desktop shortcut + Start Menu entry (proper app icon, not the .bat default)
 - Runs Prisma migrations post-install
 
+`MINT_Setup.iss` / `MINT_Setup_Lite.iss` are older monolithic installers kept for
+reference, not the recommended path.
+
 ```bash
-# Compile installer (requires Inno Setup 6)
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\MINT_Setup.iss
+# Compile the Personal installer (requires Inno Setup 6)
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\MINT_Setup_Personal.iss
 ```
 
 ## Security
@@ -185,6 +202,7 @@ MINT/
 │   │   └── ...
 │   ├── hooks/
 │   │   ├── useSession.ts     ← Auth state (dev bypasses auth)
+│   │   ├── useResearchStream.ts ← WS client for /research/stream
 │   │   └── useTheme.ts       ← Theme context consumer
 │   ├── lib/api/
 │   │   ├── fetchWrapper.ts   ← HTTP client
@@ -194,11 +212,13 @@ MINT/
 │   ├── src/index.ts          ← Fastify app, schema init, buildApp()
 │   ├── src/routes/           ← API route handlers
 │   ├── src/services/         ← Business logic (AI, media, etc.)
+│   │   └── ai/gptResearcher.service.ts ← WS client for the local GPT Researcher service
 │   └── prisma/schema.prisma  ← SQLite schema
 ├── installer/
-│   ├── MINT_Setup.iss        ← Inno Setup script
-│   ├── download-ollama.bat   ← Ollama installer helper
-│   └── download-comfyui.bat  ← ComfyUI installer helper
+│   ├── MINT_Setup_Personal.iss   ← Active installer (source-only, ~10MB)
+│   ├── download-ollama.bat       ← Ollama installer helper
+│   ├── download-comfyui.bat      ← ComfyUI installer helper
+│   └── download-gptresearcher.bat ← GPT Researcher installer helper
 ├── start-mint.bat            ← Master launcher script
 ├── stop-mint.bat             ← Stop all services
 ├── LICENSE                   ← MIT license

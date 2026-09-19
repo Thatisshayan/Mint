@@ -1,3 +1,10 @@
+> **⚠️ Stale scaffold.** Says "NOT_STARTED" for everything, but tests exist and pass:
+> `backend/src/lib/circuitBreaker.test.ts`, `backend/src/services/research.service.test.ts`,
+> `backend/src/services/ai/gptResearcher.service.test.ts`,
+> `frontend/src/hooks/useResearchStream.test.ts`, `frontend/src/lib/utils.test.ts`, and
+> more — this table was never updated after being created. Run `npm test` for current
+> results; there's no maintained coverage-percentage tracker.
+
 # MINT Test Coverage Plan
 
 ## Test Suite Map

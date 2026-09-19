@@ -31,9 +31,13 @@
 
 | Method | Path | Auth | Body | Success | Notes |
 |--------|------|------|------|---------|-------|
-| POST | `/api/research` | Yes | `{ projectId, query, sources?: string[] }` | `ResearchReport` | Enqueue research job |
+| POST | `/api/research` | Yes | `{ query, source? }` | `{ id, query, source, summary, createdAt }` | LLM-guess research (no real search) — this is also GPT Researcher's fallback path internally |
 | GET | `/api/research/:id` | Yes | — | `ResearchReport` | Poll status/result |
-| GET | `/api/research` | Yes | `projectId?` | `ResearchReport[]` | List reports |
+| GET | `/api/research` | Yes | `projectId?` | `{ reports: ResearchReport[] }` | List reports (fires for all reports when `projectId` omitted) |
+| DELETE | `/api/research/:id` | Yes | — | `{ success: true }` | |
+| GET (WS) | `/api/research/stream?token=<jwt>` | Yes (query param, not header — WS can't carry Authorization) | client sends `{ query }` after connect | server sends `{type:'progress',message}` events, then `{type:'done',report,sources,id}` or `{type:'error',message}` | Real web research via GPT Researcher (falls back to the `POST /research` LLM-guess path on any failure) |
+
+`ResearchReport`: `{ id, query, source: 'ai' \| 'gpt-researcher' \| 'ai-fallback', summary, citations?: string (JSON array of {title,url}), createdAt, updatedAt }`
 
 ## Studio
 
@@ -57,6 +61,31 @@
 |--------|------|------|------|---------|-------|
 | POST | `/api/publish/export` | Yes | `{ generatedPostId, format: "md"|"json" }` | `{ url, filename }` | Download bundle |
 | POST | `/api/publish/copy` | Yes | `{ generatedPostId }` | `{ copied: true }` | Clipboard export |
+
+## Templates
+
+| Method | Path | Auth | Body | Success | Notes |
+|--------|------|------|------|---------|-------|
+| GET | `/api/templates` | Yes | — | `Template[]` | |
+| POST | `/api/templates` | Yes | `Template` fields | `Template` | |
+| GET | `/api/templates/:id` | Yes | — | `Template` | |
+| DELETE | `/api/templates/:id` | Yes | — | `{ success: true }` | |
+
+## Files
+
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| GET | `/api/files` | Yes | Listing grouped by subdir under the unified output folder |
+| GET | `/api/files/:subdir/:name` | Yes | Download a single file (sanitized name, root-prefix guard) |
+| GET | `/api/files/_config` | Yes | The resolved output root path |
+
+## Settings
+
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| GET | `/api/settings/services` | Yes | Local-service reachability (Ollama, ComfyUI, Piper, Money Printer, GPT Researcher if configured) + installed Ollama models |
+| POST | `/api/settings/ollama-model` | Yes | Set the user's preferred Ollama model |
+| POST | `/api/settings/run-migrations` | Yes | Self-test: connect + count rows on every table |
 
 ## Health
 

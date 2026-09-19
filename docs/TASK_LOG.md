@@ -1,3 +1,6 @@
+> **⚠️ Never actually used.** No task was ever logged here. The real change history
+> is `git log`; the live task tracker is `KANBAN.md`.
+
 # MINT Task Execution Log
 
 ## Task Tracking Template
