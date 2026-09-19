@@ -9,6 +9,7 @@ A personal AI content workstation for faceless YouTube channels. Generate script
 | **AI Studio** | Generate scripts, captions, thumbnails, hooks, scenarios via Ollama (local) |
 | **Settings Page** | Pick which Ollama model to use; see service health (Ollama/ComfyUI/Piper/Money-Printer); run schema check |
 | **Research** | Real web research with citations via GPT Researcher (optional); falls back to AI-guessed reports if not running |
+| **Captioned Video** | Templated captioned video over stock footage via Remotion — a third video path alongside Money Printer Turbo and raw FFmpeg assembly |
 | **Projects** | Organize content into projects with status tracking |
 | **Library** | Save, tag, search, and favorite generated content |
 | **Publish Queue** | Queue generated drafts for review/publish; one-click from Studio |
