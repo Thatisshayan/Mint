@@ -28,6 +28,8 @@ ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
+SetupIconFile=..\app-icon.ico
+UninstallDisplayIcon={app}\app-icon.ico
 VersionInfoVersion=0.2.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} Setup
@@ -64,6 +66,7 @@ Source: "..\vitest.config.ts"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\index.html"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\vite-env.d.ts"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\app-icon.png"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\app-icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\.env"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Backend config
@@ -84,9 +87,9 @@ Name: "{app}\data"
 Name: "{app}\logs"
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\app-icon.ico"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\app-icon.ico"
 
 [Run]
 ; Install Ollama if task selected
