@@ -122,6 +122,11 @@ Backend exposes:
 - **GPT Researcher**: http://localhost:8002 (optional) — real web research for
   `/app/research`; falls back to an LLM guess if unreachable. Uses DuckDuckGo (no
   API key) and MINT's own Ollama for synthesis.
+- **Remotion** (in-process, no separate service/port) — renders captioned video
+  (voiceover + Whisper-timed captions over Pexels footage). Pure Node/TS, no Python.
+  First install/render downloads a bundled headless Chromium (~200-300MB). License:
+  free for individuals and companies up to 3 employees; a paid Company License is
+  required at 4+ — see `docs/superpowers/specs/2026-09-19-remotion-captioned-video-design.md`.
 
 ## Auth
 

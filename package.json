@@ -31,6 +31,8 @@
     "@fastify/static": "^9.1.3",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "^6.4.1",
+    "@remotion/bundler": "^4.0.526",
+    "@remotion/renderer": "^4.0.526",
     "@tanstack/react-query": "^5.66.0",
     "@tauri-apps/api": "^2",
     "class-variance-authority": "^0.7.1",
@@ -40,6 +42,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.0",
     "react-router-dom": "^7.3.0",
+    "remotion": "^4.0.526",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.24.2"

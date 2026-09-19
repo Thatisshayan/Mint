@@ -121,6 +121,17 @@ export default async function studioRoutes(fastify: FastifyInstance) {
     return await generateVideo({ script: body.script, title: body.title, platform: body.platform, voice: body.voice });
   });
 
+  fastify.post('/studio/generate-captioned-video', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = z.object({
+      script: z.string().min(1).max(10000),
+      title: z.string().max(200).optional(),
+      platform: z.enum(['youtube_shorts', 'instagram_reel', 'tiktok']).optional(),
+      voice: z.string().optional(),
+    }).parse(request.body);
+    const { generateCaptionedVideo } = await import('../services/ai/remotion.service.js');
+    return await generateCaptionedVideo({ script: body.script, title: body.title, platform: body.platform, voice: body.voice });
+  });
+
   fastify.get('/studio/generate-video/:taskId', { preHandler: authMiddleware }, async (request: FastifyRequest) => {
     const { taskId } = request.params as { taskId: string };
     const mptUrl = process.env.MONEY_PRINTER_URL || 'http://localhost:8501';

@@ -92,6 +92,7 @@ See `ARCHITECTURE.md` for full data flow.
 | ISS-005 | ComfyUI needs NVIDIA GPU with 6GB+ VRAM | Medium | Accepted — documented |
 | ISS-006 | Research had no real web search — LLM guessed at trends | Low | **Fixed in v0.4.0** — GPT Researcher integration (optional local service); falls back to the old LLM-guess behavior if not installed/running |
 | ISS-007 | GPT Researcher's completion protocol not live-verified | Low | Deferred — see `docs/governance/DEFERRED_WORK.md` and the spike notes |
+| ISS-008 | Captioned-video caption sync not live-verified (Whisper CLI not installed on the dev machine that built this) | Low | Deferred — see `docs/governance/DEFERRED_WORK.md` |
 
 ---
 
@@ -160,3 +161,4 @@ npm run db:studio        # Open Prisma Studio
 | Video pipeline fix | 2026-09-19 | Money Printer Turbo API integration corrected to match its real API |
 | Build fix | 2026-09-19 | framer-motion pinned exact after a silent version drift broke `npm run build` |
 | Research feature | 2026-09-19 | GPT Researcher integration — real web research with citations, live progress, LLM-guess fallback (v0.4.0) |
+| Captioned video | 2026-09-19 | Remotion integration — third video path, captions synced to Whisper transcript with an ffprobe-duration fallback when Whisper isn't available |

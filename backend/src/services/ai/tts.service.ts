@@ -12,6 +12,7 @@ export interface TTSOptions {
 export interface TTSResult {
   audioUrl: string;
   fileUrl?: string | null;
+  absolutePath?: string;
   durationMs: number;
   format: string;
 }
@@ -57,8 +58,11 @@ export async function generateSpeech({
     // browse later through /app/files or open from disk. Inline data URL
     // is also returned for immediate playback.
     let fileUrl: string | null = null;
+    let absolutePath: string | undefined;
     try {
-      fileUrl = saveMintBlob('audio', 'mp3', Buffer.from(audioBuffer)).publicUrl;
+      const saved = saveMintBlob('audio', 'mp3', Buffer.from(audioBuffer));
+      fileUrl = saved.publicUrl;
+      absolutePath = saved.absolutePath;
     } catch (err) {
       console.warn('Failed to persist TTS output:', err);
     }
@@ -66,6 +70,7 @@ export async function generateSpeech({
     return {
       audioUrl: `data:audio/mp3;base64,${base64}`,
       fileUrl,
+      absolutePath,
       durationMs: Math.round((text.split(' ').length / 150) * 60 * 1000),
       format: 'mp3',
     };

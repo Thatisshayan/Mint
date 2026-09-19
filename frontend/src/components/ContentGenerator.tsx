@@ -48,8 +48,10 @@ export function ContentGenerator() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState('');
   const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [generatingCaptionedVideo, setGeneratingCaptionedVideo] = useState(false);
   const [generatingAudio, setGeneratingAudio] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [captionedVideoUrl, setCaptionedVideoUrl] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [generatingImage, setGeneratingImage] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -215,6 +217,20 @@ export function ContentGenerator() {
       // video generation failed silently
     } finally {
       setGeneratingVideo(false);
+    }
+  }, []);
+
+  const generateCaptionedVideoFromScript = useCallback(async (script: string) => {
+    setGeneratingCaptionedVideo(true);
+    setCaptionedVideoUrl(null);
+    try {
+      const res = await apiClient.post('/studio/generate-captioned-video', { script, platform: 'youtube_shorts' });
+      const data = await res.json();
+      if (data.url) setCaptionedVideoUrl(data.url);
+    } catch {
+      // video generation failed silently, same posture as generateVideoFromScript
+    } finally {
+      setGeneratingCaptionedVideo(false);
     }
   }, []);
 
@@ -504,6 +520,13 @@ export function ContentGenerator() {
                   >
                     {generatingVideo ? 'Generating video...' : 'Generate Short Video'}
                   </button>
+                  <button
+                    onClick={() => generateCaptionedVideoFromScript(selectedItem.content)}
+                    disabled={generatingCaptionedVideo}
+                    className="rounded-2xl border border-mint-500/30 bg-mint-500/10 p-4 text-left text-sm font-bold text-mint-300 hover:bg-mint-500/20 disabled:opacity-50"
+                  >
+                    {generatingCaptionedVideo ? 'Generating captions...' : 'Generate Captioned Video'}
+                  </button>
                 </>
               )}
             </div>
@@ -520,6 +543,17 @@ export function ContentGenerator() {
                   Your browser does not support video.
                 </video>
                 <p className="mt-2 text-xs text-mint-400">Video generated - plays below</p>
+              </div>
+            )}
+            {captionedVideoUrl && (
+              <div className="rounded-2xl border border-mint-500/30 bg-mint-500/10 p-4">
+                <video controls className="w-full rounded-xl" src={captionedVideoUrl}>
+                  Your browser does not support video.
+                </video>
+                <p className="mt-2 text-xs text-mint-400">
+                  Captioned video generated - plays below. First render after install may take longer (downloads a
+                  one-time headless browser component).
+                </p>
               </div>
             )}
             {imageUrl && (

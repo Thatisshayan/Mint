@@ -51,3 +51,20 @@ Rule 12 / Rule 11. This register survives the session. Future agents resume from
   gitignored. Recommend rotating any API keys that were ever placed in
   `backend/.env` on a machine that built one of those releases, out of an
   abundance of caution.**
+- [2026-09-19] npm-audit-findings: `npm audit` reports 18 vulnerabilities (1
+  critical, 12 high, 4 moderate, 1 low) across the dependency tree, discovered
+  while installing Remotion's deps for the captioned-video feature — these are
+  **pre-existing**, not introduced by that install. Notable ones: `react-router`
+  (high — open redirect, XSS, DoS advisories, affects `react-router-dom` too),
+  `@fastify/static` (high — auth bypass / path traversal, `fixAvailable` but
+  `isSemVerMajor: true`), `@prisma/config` (high, via `deepmerge-ts`), `postcss`
+  / `postcss-selector-parser` (path traversal / DoS), `shell-quote` (DoS, via
+  `concurrently`), `@vitest/mocker` (moderate — path traversal, `vitest`
+  major-version fix available). — Deferred because most fixes are
+  `isSemVerMajor: true` (breaking upgrades — e.g. `@fastify/static` 10→11,
+  `vitest` 2→4) that need their own review/testing pass, not something to
+  auto-apply via `npm audit fix --force` inside an unrelated feature's task.
+  — Resume hint: run `npm audit` for the current full list; triage
+  `react-router` first (it's a direct, actively-used dependency with multiple
+  high-severity advisories, unlike the others which are mostly transitive).
+  — Status: open, not yet triaged.
