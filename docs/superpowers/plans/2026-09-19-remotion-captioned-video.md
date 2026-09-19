@@ -427,6 +427,14 @@ import { generateCaptionedVideo } from './remotion.service.js';
 
 describe('generateCaptionedVideo', () => {
   beforeEach(() => {
+    // vi.clearAllMocks() is required here — without it, mock.calls[0] on
+    // selectComposition/renderMedia across separate `it` blocks refers to
+    // the FIRST call ever made in the whole file, not the current test's
+    // call, which was discovered as a real test failure during execution
+    // (3 of 5 tests failed with values from earlier tests bleeding through
+    // before this line was added). clearAllMocks clears call history only,
+    // not the vi.mock() factory implementations above, so those stay intact.
+    vi.clearAllMocks();
     vi.mocked(generateSpeech).mockResolvedValue({
       audioUrl: 'data:audio/mp3;base64,AAAA',
       fileUrl: '/api/files/audio/1.mp3',
