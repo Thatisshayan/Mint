@@ -131,17 +131,19 @@ Backend exposes:
 - RouteGuard component for protected frontend routes
 - Auto-provisioning in middleware means new tokens work without a separate "create account" step.
 
-## Status (June 2026)
+## Status (v0.4.0, 2026-09-19)
 
 Working MVP. End-to-end smoke-tested on local Ollama with 6 models (`qwen2.5-coder:7b`, `qwen2.5:3b`, `llama3.2:latest`, `llama3.2:3b`, `mistral:latest`, `qwen3.6:latest`) plus Piper TTS.
 
-Backend now exposes a single `/api/settings/services` endpoint that reports reachability of every integrated service and lists installed Ollama models. There's a Settings page (`/app/settings`) that lets you pick the model and run a schema check.
+Backend exposes `/api/settings/services` (reachability of every integrated service, including GPT Researcher when configured) and lists installed Ollama models. Settings page (`/app/settings`) lets you pick the model and run a schema check.
+
+v0.4.0 adds: repo governance/CI gate, a fixed desktop/installer app icon, a corrected Money Printer Turbo API integration, a build-breaking framer-motion version pin, and GPT Researcher for real web research on the Research page (falls back to the old LLM-guess behavior if not running — see `GROUND_TRUTH.md` ISS-007 for what's not yet live-verified).
 
 ### Build the windows installer (portable, source-only)
 
 ```powershell
 & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' installer\MINT_Setup_Personal.iss
-# Output: installer\output\MINT_Setup_Personal_0.3.0.exe
+# Output: installer\output\MINT_Setup_Personal_0.4.0.exe
 ```
 
-This pulls all source + scripts (Python-like build for npm), but does NOT bundle `node_modules` — they install on the user's machine. Result is ~2.6 MB instead of the legacy 88 MB monolithic build.
+This pulls all source + scripts (Python-like build for npm), but does NOT bundle `node_modules` — they install on the user's machine. Result is a few MB instead of the legacy 88 MB monolithic build.
