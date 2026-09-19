@@ -2,13 +2,13 @@
 
 **Single source of truth. Updated after every significant change.**
 
-*Last updated: June 2026 — Local AI services working, Windows installer created, all features functional.*
+*Last updated: 2026-09-19 — v0.4.0: repo governance bootstrap, desktop/installer icon fix, Money Printer Turbo API integration fixed, build-breaking framer-motion type drift fixed, GPT Researcher integration for real web research.*
 
 ---
 
 ## Current State
 
-MINT is a **working web application** with local AI services (Ollama, ComfyUI, Piper TTS). The backend runs on `localhost:4000` with SQLite. Frontend runs on `localhost:5173` via Vite. All AI features run locally — no cloud API keys needed for basic usage.
+MINT is a **working web application** with local AI services (Ollama, ComfyUI, Piper TTS, optionally GPT Researcher). The backend runs on `localhost:4000` with SQLite. Frontend runs on `localhost:5173` via Vite. All AI features run locally — no cloud API keys needed for basic usage.
 
 ---
 
@@ -24,26 +24,26 @@ MINT is a **working web application** with local AI services (Ollama, ComfyUI, P
 - Framer Motion animations, TanStack Query caching, Toast notifications
 
 ### Backend
-- **Fastify 5** with all `@fastify/*` plugins on v5-compatible versions
+- **Fastify 5** with all `@fastify/*` plugins on v5-compatible versions, including `@fastify/websocket` (new — powers `/api/research/stream`)
 - **SQLite** via Prisma 6 — no external DB server needed
 - **Schema auto-init**: `CREATE TABLE IF NOT EXISTS` on every startup — no `prisma migrate` needed in production
 - **Dev user upsert**: ensures FK constraints are satisfied on first launch
 - **Auth bypass**: dev mode auto-verifies with dummy token
-- All routes: `/api/auth`, `/api/projects`, `/api/studio`, `/api/research`, `/api/library`, `/api/publish`, `/api/templates`, `/api/export`
+- All routes: `/api/auth`, `/api/projects`, `/api/studio`, `/api/research` (+ WS `/api/research/stream`), `/api/library`, `/api/publish`, `/api/templates`, `/api/export`, `/api/files`, `/api/settings`
 - Health endpoint at `/health`
+- Money Printer Turbo (video) integration fixed — was calling API endpoints/response shapes that didn't match MPT's real API (`/api/v1/videos` task creation, `/api/v1/tasks/:id` polling, `/api/v1/download/:path`); previously generated videos could never be detected as finished
 
 ### Local AI Services
 - **Ollama** (port 11434): Running with llama3.2 model (2GB VRAM)
 - **ComfyUI** (port 8188): Installed with SD 1.5 model (~4GB VRAM)
 - **Piper TTS**: Installed with en_US-amy-medium voice
+- **GPT Researcher** (port 8002, optional): real web research (DuckDuckGo retriever, MINT's own Ollama for synthesis) for the Research page. Falls back to an LLM guess if not running. **Not live-verified this session** — the local dev machine's Ollama hung during setup, so `gptResearcher.service.ts`'s completion-fetch logic is built on source reads of GPT Researcher's protocol, not an end-to-end test. See `docs/superpowers/specs/2026-09-19-gpt-researcher-spike-notes.md`.
 - **Backend**: Configured to use all local services
 
 ### Windows Installer
-- **Smart installer** (88MB): Inno Setup-based, auto-detects existing services
-- **Bundles**: MINT source + Piper TTS + start/stop scripts
-- **Downloads**: Ollama, ComfyUI, SD 1.5 model during setup if missing
-- **Creates**: Desktop shortcut, Start Menu entry
-- **Post-install**: Runs Prisma migrations and generates client
+- **Personal installer** (~10MB, source-only): the actively documented/shipped installer (`installer/MINT_Setup_Personal.iss`). Auto-detects Ollama/ComfyUI/GPT Researcher, downloads them during setup if missing, runs `npm install` + Prisma migrate post-install.
+- **Legacy installers** (`MINT_Setup.iss`, `MINT_Setup_Lite.iss`, both still at v0.2.0): kept for reference, not the recommended install path — see README.
+- Proper desktop-app icon (was showing the generic .bat icon — installer scripts never set `IconFilename` on the shortcuts)
 
 ---
 
@@ -56,12 +56,13 @@ MINT is a **working web application** with local AI services (Ollama, ComfyUI, P
 | @fastify/helmet | 13.0.2 |
 | @fastify/jwt | 10.1.0 |
 | @fastify/static | 9.1.3 |
+| @fastify/websocket | 11.3.1 |
 | @prisma/client | 6.19.3 |
 | prisma | 6.19.3 |
 | react | 18.x |
 | react-router-dom | 7.x |
 | @tanstack/react-query | 5.x |
-| framer-motion | 12.x |
+| framer-motion | 12.40.0 (pinned exact — was `^12.4.7`, had silently drifted to a version whose type exports broke the build) |
 | vite | 6.x |
 
 ---
@@ -89,7 +90,8 @@ See `ARCHITECTURE.md` for full data flow.
 | ISS-003 | No CSRF protection | Low | Accepted — personal use |
 | ISS-004 | Node.js must be pre-installed by user | Medium | Accepted — documented in README |
 | ISS-005 | ComfyUI needs NVIDIA GPU with 6GB+ VRAM | Medium | Accepted — documented |
-| ISS-006 | Research is placeholder — no web search API configured | Low | Accepted — add Brave API key for research |
+| ISS-006 | Research had no real web search — LLM guessed at trends | Low | **Fixed in v0.4.0** — GPT Researcher integration (optional local service); falls back to the old LLM-guess behavior if not installed/running |
+| ISS-007 | GPT Researcher's completion protocol not live-verified | Low | Deferred — see `docs/governance/DEFERRED_WORK.md` and the spike notes |
 
 ---
 
@@ -100,8 +102,9 @@ See `ARCHITECTURE.md` for full data flow.
 | Real email delivery | Not needed for personal use |
 | Cloud sync | Intentional — all data stays local |
 | Linux / macOS builds | Not configured yet |
-| Money Printer Turbo | Optional — clone and install separately |
 | Docker deployment | Not maintained — focus on local development |
+| Money Printer Turbo | Optional — clone and install separately (API integration itself fixed in v0.4.0) |
+| AnimateDiff / SadTalker / OpenVoice / Remotion | Evaluated, not yet implemented — see `docs/superpowers/specs/` for the GPT Researcher precedent these would follow |
 
 ---
 
@@ -152,3 +155,8 @@ npm run db:studio        # Open Prisma Studio
 | Desktop 4 | June 2026 | Fix ThemeProvider missing from tree — resolves white screen |
 | Local AI | June 2026 | Install ComfyUI, Piper TTS, configure Ollama, create start-mint.bat |
 | Installer | June 2026 | Inno Setup smart installer (88MB), auto-detect AI services, desktop shortcut |
+| Governance | 2026-09-19 | REPO_RULES.md + CI gate bootstrap, branch protection on `main` |
+| Icon fix | 2026-09-19 | Installer shortcuts + Tauri icon set were showing the generic .bat icon — fixed |
+| Video pipeline fix | 2026-09-19 | Money Printer Turbo API integration corrected to match its real API |
+| Build fix | 2026-09-19 | framer-motion pinned exact after a silent version drift broke `npm run build` |
+| Research feature | 2026-09-19 | GPT Researcher integration — real web research with citations, live progress, LLM-guess fallback (v0.4.0) |
