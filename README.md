@@ -87,6 +87,7 @@ The flag file `.first-run-done` in the project root prevents auto-opening the Se
 | **ComfyUI** | 8188 | Image generation | Optional. Set `COMFYUI_BASE_URL` in `.env` to your instance. |
 | **Piper TTS** | — | Text-to-speech | Optional. Path configured via `PIPER_EXECUTABLE`. |
 | **Money Printer Turbo** | 8501 | Video generation | Optional. Skip if not installed — the Studio Video button gracefully no-ops. |
+| **GPT Researcher** | 8002 | Real web research | Optional. Set `GPT_RESEARCHER_BASE_URL` in `.env`. Install via the Personal installer's checkbox, or `pip install gpt-researcher` manually (see `docs/superpowers/specs/2026-09-19-gpt-researcher-design.md`). Falls back to an LLM guess on the Research page if not running. |
 
 ### Configuration
 

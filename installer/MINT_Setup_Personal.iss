@@ -54,6 +54,7 @@ WelcomeLabel2=This installs MINT, an AI Content Workstation with local Ollama, C
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 Name: "installollama"; Description: "Install Ollama via official installer (recommended)"; GroupDescription: "AI Services:"
 Name: "installcomfyui"; Description: "Install ComfyUI + SD 1.5 model (heavy download)"; GroupDescription: "AI Services:"
+Name: "installgptresearcher"; Description: "Install GPT Researcher (real web research for the Research page)"; GroupDescription: "AI Services:"
 
 [Files]
 ; Source code only - npm install runs post-install
@@ -94,6 +95,7 @@ Source: "..\stop-mint.bat"; DestDir: "{app}"; Flags: ignoreversion
 ; Installer helpers (carried over so users can re-download Ollama/ComfyUI)
 Source: "download-ollama.bat"; DestDir: "{app}\installer"; Flags: ignoreversion
 Source: "download-comfyui.bat"; DestDir: "{app}\installer"; Flags: ignoreversion
+Source: "download-gptresearcher.bat"; DestDir: "{app}\installer"; Flags: ignoreversion
 
 [Dirs]
 Name: "{app}\data"
@@ -110,6 +112,7 @@ Name: "{group}\MINT Settings"; Filename: "{app}\MINT_Settings.url"; IconFilename
 ; Optional AI service installs (these are heavy downloads; don't gate the install on them)
 Filename: "{app}\installer\download-ollama.bat"; StatusMsg: "Installing Ollama..."; Tasks: installollama; Flags: runhidden waituntilterminated shellexec
 Filename: "{app}\installer\download-comfyui.bat"; Parameters: "{app}"; StatusMsg: "Installing ComfyUI..."; Tasks: installcomfyui; Flags: runhidden waituntilterminated shellexec
+Filename: "{app}\installer\download-gptresearcher.bat"; Parameters: "{app}"; StatusMsg: "Installing GPT Researcher..."; Tasks: installgptresearcher; Flags: runhidden waituntilterminated shellexec
 
 ; Always: install npm deps at top level + backend
 Filename: "cmd"; Parameters: "/c cd /d ""{app}"" && npm install"; StatusMsg: "Installing npm dependencies (frontend)..."; Flags: runhidden waituntilterminated
