@@ -14,22 +14,22 @@ All 4 T0 gates FAIL. 0/4 pass.
 ## First error line per command
 
 **1. `npm run build`** (tsc -b && vite build) — exit 1
-```
+```text
 frontend/src/components/layout/AppShell.tsx(2,55): error TS2460: Module '"framer-motion"' declares 'Easing' locally, but it is exported as 'MotionGlobalConfig'.
 ```
 
 **2. `npm run backend:build`** (prisma generate && node backend/bundle.mjs) — exit 1
-```
+```text
 Unknown error during config file loading: Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'D:\AgentDevWork\repos\.mint\MINT\node_modules\destr\dist\index.mjs' imported from D:\AgentDevWork\repos\.mint\MINT\node_modules\rc9\dist\index.mjs
 ```
 
 **3. `npm run test`** (vitest run) — exit 1
-```
+```text
 Error: Cannot find package 'D:\AgentDevWork\repos\.mint\MINT\node_modules\@vitest\runner\node_modules\pathe\index.js' imported from D:\AgentDevWork\repos\.mint\MINT\node_modules\@vitest\runner\dist\chunk-tasks.js
 ```
 
 **4. `npm run lint`** (eslint .) — exit 2
-```
+```text
 Error: Invalid package config \\?\D:\AgentDevWork\repos\.mint\MINT\node_modules\eslint-visitor-keys\package.json.
 ```
 

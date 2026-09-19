@@ -31,6 +31,8 @@ every model provider, local-first by default, no hardcoded secrets, drop-in apps
   goal: Fastify routes + Prisma client reliable.
 ### S2 (maps to P2) — UI
   goal: web app talks to backend only via typed API.
+### S3 (maps to P3) — local-first parity
+  goal: Ollama adapter output matches cloud providers.
 
 ## Epics / Chapters
 
@@ -46,7 +48,7 @@ every model provider, local-first by default, no hardcoded secrets, drop-in apps
 - [ ] T1 — Document the provider abstraction contract (interface + adapters) | traces-to: P1/S1/E1 | acceptance: every adapter implements the contract; doc matches code
 - [ ] T2 — Add Prisma migration check to CI (generate vs db diff) | traces-to: P1/S1/E2 | acceptance: drift blocked before merge
 - [ ] T3 — Wire React 19 UI to backend via typed client only | traces-to: P2/S2/E3 | acceptance: no direct fetch to providers from UI
-- [ ] T4 — Verify Ollama local path returns same shape as cloud provider | traces-to: P3/S1/E1 | acceptance: adapter output identical for local+cloud
+- [ ] T4 — Verify Ollama local path returns same shape as cloud provider | traces-to: P3/S3/E1 | acceptance: adapter output identical for local+cloud
 - [ ] T5 — Ensure .env.example covers all providers, no real keys committed | traces-to: P1/S1/E1 | acceptance: secret-scan clean; example complete
 
 ## Sentinel Constraints

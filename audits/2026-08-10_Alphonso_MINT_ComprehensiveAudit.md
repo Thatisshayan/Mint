@@ -3,7 +3,7 @@
 **Date:** 2026-08-10 · **Auditor seat:** Alphonso (build/CTO executor) · **Orchestrated by:** Jose
 **Repo:** `D:\AgentDevWork\repos\.mint\MINT` (git repo; `D:\AgentDevWork\Mint` is the desktop build dir — excluded)
 **Method:** T0 real-build verification (1 seat) + static source analysis (2 seats). Seats timed out at the *report-write* step; Jose synthesized this canonical document from their collected evidence + direct confirmation greps.
-**T0 VERDICT: NOT GREEN — 0/4 gates pass.** See `2026-08-10_Alphonso_MINT_T0.md` for raw output.
+**T0 VERDICT: NOT GREEN — 0/4 gates pass.** See `2026-08-10_Alphonso_MINT_T0_Audit.md` for raw output.
 
 ---
 
@@ -150,4 +150,4 @@ MINT is a **functionally rich, well-structured local-first AI studio** whose *so
 
 ---
 
-*Prepared by Jose (orchestrator) synthesizing Alphonso-seat evidence. T0 raw output: `2026-08-10_Alphonso_MINT_T0.md`. No source was modified; no commit was made; no paid API was called.*
+*Prepared by Jose (orchestrator) synthesizing Alphonso-seat evidence. T0 raw output: `2026-08-10_Alphonso_MINT_T0_Audit.md`. No source was modified; no commit was made; no paid API was called.*
