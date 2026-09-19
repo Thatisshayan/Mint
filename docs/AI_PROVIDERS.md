@@ -154,4 +154,14 @@ COMFYUI_BASE_URL=http://localhost:8188
 TTS_PROVIDER=piper
 PIPER_EXECUTABLE=D:\AgentDevWork\Programs\piper-tts\piper.exe
 PIPER_VOICE_DIR=D:\AgentDevWork\Programs\piper-tts\voices
+
+# Research (real web search, optional — separate service, not part of the
+# LLM_PROVIDER chain above; it uses Ollama internally for synthesis only)
+GPT_RESEARCHER_BASE_URL=http://localhost:8002
 ```
+
+Research (`/app/research`) is not part of this provider chain — it's a separate
+optional local service (GPT Researcher) that does real web search via DuckDuckGo,
+using Ollama only for synthesizing the final report. If unset/unreachable, Research
+falls back to asking the `LLM_PROVIDER` chain above to guess at trends instead. See
+`docs/superpowers/specs/2026-09-19-gpt-researcher-design.md`.

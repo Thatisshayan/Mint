@@ -8,7 +8,7 @@ A personal AI content workstation for faceless YouTube channels. Generate script
 |---------|-------------|
 | **AI Studio** | Generate scripts, captions, thumbnails, hooks, scenarios via Ollama (local) |
 | **Settings Page** | Pick which Ollama model to use; see service health (Ollama/ComfyUI/Piper/Money-Printer); run schema check |
-| **Research** | AI-powered research reports with competitor analysis |
+| **Research** | Real web research with citations via GPT Researcher (optional); falls back to AI-guessed reports if not running |
 | **Projects** | Organize content into projects with status tracking |
 | **Library** | Save, tag, search, and favorite generated content |
 | **Publish Queue** | Queue generated drafts for review/publish; one-click from Studio |
@@ -106,9 +106,8 @@ COMFYUI_BASE_URL=http://localhost:8188
 TTS_PROVIDER=piper
 PIPER_EXECUTABLE=D:\AgentDevWork\Programs\piper-tts\piper.exe
 
-# Research: Add Brave Search API key for web research
-RESEARCH_PROVIDER=brave
-BRAVE_SEARCH_API_KEY=
+# Research: real web search via GPT Researcher (optional local service)
+GPT_RESEARCHER_BASE_URL=http://localhost:8002
 ```
 
 ### Services Status
