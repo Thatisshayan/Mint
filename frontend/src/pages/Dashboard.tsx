@@ -3,7 +3,11 @@ import { apiClient } from '@/lib/api/client';
 import { useNavigate } from 'react-router-dom';
 import { downloadAsJSON } from '@/lib/export';
 import { useToast } from '@/context/toastContext';
-import { motion, type Variants, type Easing } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
+
+// framer-motion doesn't reliably export an `Easing` type across minor versions
+// (renamed/relocated more than once); define the shape we actually need.
+type Easing = readonly [number, number, number, number];
 
 interface DashboardStats {
   totalContent: number;

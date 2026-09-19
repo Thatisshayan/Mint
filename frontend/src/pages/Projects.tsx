@@ -1,6 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { useCreateProject, useProjects } from '@/stores/projects';
-import { motion, AnimatePresence, type Variants, type Easing } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+
+// framer-motion doesn't reliably export an `Easing` type across minor versions
+// (renamed/relocated more than once); define the shape we actually need.
+type Easing = readonly [number, number, number, number];
 
 type Project = {
   id: string;
