@@ -8,13 +8,13 @@ MINT is a personal AI content workstation for faceless YouTube channels. It runs
 
 ### Option 1: Windows Installer (Recommended)
 
-Download [`MINT_Setup_0.2.0.exe`](https://github.com/Thatisshayan/Mint/releases/download/v0.2.0/MINT_Setup_0.2.0.exe) from GitHub Releases.
+Download the latest `MINT_Setup_Personal_*.exe` from [GitHub Releases](https://github.com/Thatisshayan/Mint/releases) — a portable, source-only installer (~10MB).
 
-The smart installer:
-1. Detects existing Ollama/ComfyUI installations
-2. Downloads missing AI services during setup
+The installer:
+1. Detects existing Ollama/ComfyUI/GPT Researcher installations
+2. Downloads missing AI services during setup (all optional, tick the boxes you want)
 3. Creates desktop shortcut and Start Menu entry
-4. Runs Prisma migrations on first launch
+4. Runs `npm install` + Prisma migrations on first launch, then opens the Settings page
 
 ### Option 2: Manual Install
 
@@ -96,6 +96,32 @@ D:\AgentDevWork\Programs\comfyui\venv\Scripts\python.exe D:\AgentDevWork\Program
 ### Piper TTS Setup (Optional — for voiceover)
 
 Piper TTS is installed at `D:\AgentDevWork\Programs\piper-tts\` with the `en_US-amy-medium` voice.
+
+### GPT Researcher Setup (Optional — for real web research)
+
+Powers real, cited web research on the Research page instead of the LLM guessing at
+trends. Tick the checkbox in the Personal installer, or set up manually:
+
+```bash
+python -m venv gpt-researcher-venv
+gpt-researcher-venv\Scripts\activate
+pip install gpt-researcher fastapi "uvicorn[standard]" python-dotenv
+```
+
+`.env` (in the venv's working directory):
+```env
+RETRIEVER=duckduckgo
+FAST_LLM=ollama:llama3.2
+SMART_LLM=ollama:llama3.2
+OLLAMA_BASE_URL=http://localhost:11434
+```
+
+```bash
+python -m uvicorn main:app --port 8002
+```
+
+Then set `GPT_RESEARCHER_BASE_URL=http://localhost:8002` in `backend/.env`. If it's
+not running, Research silently falls back to the old LLM-guess behavior.
 
 ---
 
