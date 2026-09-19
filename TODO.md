@@ -63,6 +63,13 @@ All 5 phases are implemented and functional.
 - [x] Added MIT LICENSE
 - [x] Updated .gitignore for build artifacts
 
+### Phase 8: Governance + Fixes (✅ DONE — 2026-09-19, v0.4.0)
+- [x] Repo governance bootstrap (REPO_RULES.md, CI gate, branch protection)
+- [x] Fix desktop/installer app icon (was the generic .bat icon)
+- [x] Fix Money Printer Turbo API integration (real API shape, not guessed)
+- [x] Fix build-breaking framer-motion version drift
+- [x] GPT Researcher integration — real web research for the Research page
+
 ### Phase ∞: Polish (⏳ FUTURE)
 - [ ] Real SMTP email sending for auth
 - [ ] YouTube Data API integration
@@ -70,8 +77,8 @@ All 5 phases are implemented and functional.
 - [ ] Content calendar
 - [ ] Batch generation
 - [ ] Export (MP4, MP3, SRT, TXT)
-- [ ] Brave Search API for web research
-- [ ] Money Printer Turbo integration
+- [ ] Live-verify GPT Researcher's completion protocol against a real running instance
+- [ ] AnimateDiff (motion via existing ComfyUI), SadTalker + OpenVoice (avatar video), Remotion (templated video rendering)
 
 ## Done ✅
 - [x] Both PRs merged (kimi/security-backend + kilo/frontend-fixes)
