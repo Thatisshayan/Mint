@@ -36,6 +36,8 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
+SetupIconFile=..\app-icon.ico
+UninstallDisplayIcon={app}\app-icon.ico
 VersionInfoVersion=0.3.3
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} (Personal Use) Setup
@@ -76,6 +78,7 @@ Source: "..\vitest.config.ts"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\index.html"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\vite-env.d.ts"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\app-icon.png"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\app-icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Backend config
 Source: "..\backend\package.json"; DestDir: "{app}\backend"; Flags: ignoreversion
@@ -98,10 +101,10 @@ Name: "{app}\logs"
 Name: "{app}\installer"
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\app-icon.ico"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
-Name: "{group}\MINT Settings"; Filename: "{app}\MINT_Settings.url"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\app-icon.ico"
+Name: "{group}\MINT Settings"; Filename: "{app}\MINT_Settings.url"; IconFilename: "{app}\app-icon.ico"
 
 [Run]
 ; Optional AI service installs (these are heavy downloads; don't gate the install on them)
