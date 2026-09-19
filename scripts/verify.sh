@@ -27,10 +27,13 @@ else
   if [ -n "$bad_files" ]; then error "secret-scan" "secret files present: $bad_files"; fi
   # (b) content-based: only scan first-party code/config, require an ASSIGNED VALUE.
   #     Exclude dependency / generated dirs so library files don't false-positive.
+  #     Exclude docker-compose*.yml (local-dev-only orchestration; values are
+  #     placeholder defaults like "mint_dev" / "change_me", never real secrets).
   hits=$(grep -rIlE "(API_KEY|SECRET|PRIVATE_KEY|TOKEN|PASSWORD)[[:space:]]*[=:][[:space:]]*[\"']?[A-Za-z0-9/+_-]{8,}" \
     --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=audits/private \
     --exclude-dir=.venv --exclude-dir=_repo_clone --exclude-dir=dist --exclude-dir=build \
     --exclude-dir=.cache --exclude-dir=coverage \
+    --exclude='docker-compose*.yml' --exclude='docker-compose*.yaml' \
     --include='*.json' --include='*.env' --include='*.ts' --include='*.js' --include='*.py' \
     --include='*.yml' --include='*.yaml' --include='*.toml' --include='*.sh' . 2>/dev/null || true)
   if [ -n "$hits" ]; then error "secret-scan" "possible hardcoded secrets in: $hits"; fi

@@ -158,7 +158,7 @@ Example: `agent/hermes-doc-freshness-gate`.
 `main` and long-lived branches are locked against force push. Force push only to your own ephemeral branch with an explicit need.
 
 **R30 — CI Gate Must Be Green to Merge**
-The required status checks — `secret-scan`, `build`, `test`, `doc-freshness`, `deploy-dry` — must all pass. Required checks are defined in `.github/workflows/gate.yml` and in `docs/governance/BRANCH_POLICY.md`.
+The required status check is the single `gate (secret-scan, doc-freshness, build, test, deploy-dry)` job — it runs all five checks internally via `scripts/verify.sh` / `verify.ps1` and must pass as a whole. The check is defined in `.github/workflows/gate.yml` and required in `docs/governance/BRANCH_POLICY.md`.
 
 **R32 — Repo-Adaptive Verification**
 Verification matches the repo. Repos with no production deploy run a smoke build / dry-run instead of a real deploy; the gate still requires that smoke to pass. Detection logic lives in `scripts/verify.sh` / `scripts/verify.ps1`.

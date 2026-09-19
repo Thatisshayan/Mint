@@ -24,12 +24,15 @@ if (Get-Command gitleaks -ErrorAction SilentlyContinue) {
     Where-Object { $_.FullName -notmatch $excludeDirs }
   if ($badFiles) { Err "secret-scan" "secret files present: $($badFiles.FullName -join ', ')" }
   # (b) content-based: first-party code/config only, require an assigned value.
-  #     Exclude dependency / generated dirs + *.env.example / *.env.sample templates.
+  #     Exclude dependency / generated dirs + *.env.example / *.env.sample templates
+  #     + docker-compose*.yml (local-dev-only orchestration; values are placeholder
+  #     defaults like "mint_dev" / "change_me", never real secrets).
   $hits = Get-ChildItem -Path $RepoRoot -Recurse -File `
     -Include *.json,*.env,*.ts,*.js,*.py,*.yml,*.yaml,*.toml,*.sh `
     -ErrorAction SilentlyContinue |
     Where-Object { $_.FullName -notmatch $excludeDirs } |
     Where-Object { $_.Name -notmatch '\.env\.(example|sample)$' } |
+    Where-Object { $_.Name -notmatch '^docker-compose(\..+)?\.ya?ml$' } |
     Where-Object { Select-String -Path $_.FullName -Pattern '(API_KEY|SECRET|PRIVATE_KEY|TOKEN|PASSWORD)\s*[=:]\s*["'']?[A-Za-z0-9/+_-]{8,}' -Quiet }
   if ($hits) { Err "secret-scan" "possible hardcoded secrets in: $($hits.FullName -join ', ')" }
 }
