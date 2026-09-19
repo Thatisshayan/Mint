@@ -64,6 +64,16 @@ async function gatherStatuses(): Promise<ServiceStatus[]> {
       detail: 'Local text-to-speech CLI.',
     });
   }
+  const gptResearcher = process.env.GPT_RESEARCHER_BASE_URL || null;
+  if (gptResearcher) {
+    out.push({
+      name: 'gpt-researcher',
+      url: gptResearcher,
+      reachable: await ping(gptResearcher),
+      detail:
+        'Real web research for the Research page. Model is set at service startup — changing the Ollama model above does not update it until the service is restarted.',
+    });
+  }
   return out;
 }
 
