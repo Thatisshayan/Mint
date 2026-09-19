@@ -25,20 +25,20 @@ else
     -not -path '*/.venv/*' -not -path '*/_repo_clone/*' -not -path '*/dist/*' \
     -not -path '*/build/*' -not -path '*/.cache/*' -not -path '*/coverage/*' 2>/dev/null || true)
   if [ -n "$bad_files" ]; then error "secret-scan" "secret files present: $bad_files"; fi
-  # (b) content-based: only scan first-party code/config, require an ASSIGNED VALUE.
-  #     Exclude dependency / generated dirs so library files don't false-positive.
-  #     Exclude docker-compose*.yml (local-dev-only orchestration; values are
-  #     placeholder defaults like "mint_dev" / "change_me", never real secrets).
-  #     Exclude *.env.example / *.env.sample explicitly (template files, no real
-  #     secrets) — don't rely on --include='*.env' alone to keep them out.
-  hits=$(grep -rIlE "(API_KEY|SECRET|PRIVATE_KEY|TOKEN|PASSWORD)[[:space:]]*[=:][[:space:]]*[\"']?[A-Za-z0-9/+_-]{8,}" \
+  # (b) content-based: only scan first-party code/config, require an ASSIGNED VALUE
+  #     that isn't an obvious placeholder. Exclude dependency / generated dirs so
+  #     library files don't false-positive. Placeholder-aware because template
+  #     files show up under all sorts of names (.env.example, env.template, ...)
+  #     — chasing filenames is a losing game; the actual signal is the value.
+  placeholder_markers='change[_-]?me|changeit|your[_-]|insert[_-]?here|xxx|placeholder|dummy|example|redacted|not[_-]?set|todo|fixme|_dev([\"'"'"'[:space:]]|$)|localhost|\{\{|\$\{'
+  hits=$(grep -rInE "(API_KEY|SECRET|PRIVATE_KEY|TOKEN|PASSWORD)[[:space:]]*[=:][[:space:]]*[\"']?[A-Za-z0-9/+_-]{8,}" \
     --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=audits/private \
     --exclude-dir=.venv --exclude-dir=_repo_clone --exclude-dir=dist --exclude-dir=build \
     --exclude-dir=.cache --exclude-dir=coverage \
-    --exclude='docker-compose*.yml' --exclude='docker-compose*.yaml' \
-    --exclude='*.env.example' --exclude='*.env.sample' \
     --include='*.json' --include='*.env' --include='*.ts' --include='*.js' --include='*.py' \
-    --include='*.yml' --include='*.yaml' --include='*.toml' --include='*.sh' . 2>/dev/null || true)
+    --include='*.yml' --include='*.yaml' --include='*.toml' --include='*.sh' . 2>/dev/null \
+    | grep -viE "$placeholder_markers" \
+    | cut -d: -f1 | sort -u || true)
   if [ -n "$hits" ]; then error "secret-scan" "possible hardcoded secrets in: $hits"; fi
 fi
 

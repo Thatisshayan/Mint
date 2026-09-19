@@ -23,17 +23,19 @@ if (Get-Command gitleaks -ErrorAction SilentlyContinue) {
     -ErrorAction SilentlyContinue |
     Where-Object { $_.FullName -notmatch $excludeDirs }
   if ($badFiles) { Err "secret-scan" "secret files present: $($badFiles.FullName -join ', ')" }
-  # (b) content-based: first-party code/config only, require an assigned value.
-  #     Exclude dependency / generated dirs + *.env.example / *.env.sample templates
-  #     + docker-compose*.yml (local-dev-only orchestration; values are placeholder
-  #     defaults like "mint_dev" / "change_me", never real secrets).
+  # (b) content-based: first-party code/config only, require an assigned value
+  #     that isn't an obvious placeholder. Placeholder-aware because template
+  #     files show up under all sorts of names (.env.example, env.template, ...)
+  #     — chasing filenames is a losing game; the actual signal is the value.
+  $placeholderRe = 'change[_-]?me|changeit|your[_-]|insert[_-]?here|xxx|placeholder|dummy|example|redacted|not[_-]?set|todo|fixme|_dev([''"\s]|$)|localhost|\{\{|\$\{'
   $hits = Get-ChildItem -Path $RepoRoot -Recurse -File `
     -Include *.json,*.env,*.ts,*.js,*.py,*.yml,*.yaml,*.toml,*.sh `
     -ErrorAction SilentlyContinue |
     Where-Object { $_.FullName -notmatch $excludeDirs } |
-    Where-Object { $_.Name -notmatch '\.env\.(example|sample)$' } |
-    Where-Object { $_.Name -notmatch '^docker-compose(\..+)?\.ya?ml$' } |
-    Where-Object { Select-String -Path $_.FullName -Pattern '(API_KEY|SECRET|PRIVATE_KEY|TOKEN|PASSWORD)\s*[=:]\s*["'']?[A-Za-z0-9/+_-]{8,}' -Quiet }
+    Where-Object {
+      $m = Select-String -Path $_.FullName -Pattern '(API_KEY|SECRET|PRIVATE_KEY|TOKEN|PASSWORD)\s*[=:]\s*["'']?[A-Za-z0-9/+_-]{8,}'
+      $m | Where-Object { $_.Line -notmatch $placeholderRe } | Select-Object -First 1
+    }
   if ($hits) { Err "secret-scan" "possible hardcoded secrets in: $($hits.FullName -join ', ')" }
 }
 
