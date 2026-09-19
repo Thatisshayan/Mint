@@ -183,25 +183,42 @@ necessarily a new problem; let it run rather than assuming failure.
 
 - [ ] **Step 2: Create the composition component**
 
+> **Correction discovered during execution**: the plan as originally written used
+> `<Composition<CaptionedVideoProps>>` with a plain TS interface and no `schema` prop.
+> That failed typecheck against the actually-installed Remotion version —
+> `Composition`'s real declaration (`node_modules/remotion/dist/cjs/Composition.d.ts`)
+> requires **two** generics, `<Schema extends AnyZodObject, Props extends
+> Record<string, unknown>>`, with no default for `Schema`. The fix below defines a
+> real Zod schema (zod is already a MINT dependency) and lets both generics be
+> inferred from it — this is what the code blocks in this step already reflect.
+
 Create `remotion/src/CaptionedVideo.tsx`:
 
 ```tsx
-import { AbsoluteFill, Audio, Sequence, useCurrentFrame, useVideoConfig, Loop } from 'remotion';
-import { OffthreadVideo } from 'remotion';
+import { AbsoluteFill, Audio, Sequence, useCurrentFrame, useVideoConfig, Loop, OffthreadVideo } from 'remotion';
 import type { CalculateMetadataFunction } from 'remotion';
+import { z } from 'zod';
 
-export interface Caption {
-  start: number; // seconds
-  end: number; // seconds
-  text: string;
-}
+// A real Zod schema, not just a TS interface — required by this installed
+// Remotion version's <Composition> typing (Composition<Schema, Props> takes
+// two generics with no default). Passing a real schema lets both generics
+// be fully inferred instead of guessed, and gets real runtime prop
+// validation as a side benefit.
+export const captionSchema = z.object({
+  start: z.number(),
+  end: z.number(),
+  text: z.string(),
+});
 
-export interface CaptionedVideoProps {
-  audioSrc: string;
-  footageSrc?: string;
-  captions: Caption[];
-  footageDurationSec?: number; // real duration of footageSrc, if known
-}
+export const captionedVideoPropsSchema = z.object({
+  audioSrc: z.string(),
+  footageSrc: z.string().optional(),
+  captions: z.array(captionSchema),
+  footageDurationSec: z.number().optional(),
+});
+
+export type Caption = z.infer<typeof captionSchema>;
+export type CaptionedVideoProps = z.infer<typeof captionedVideoPropsSchema>;
 
 export const calculateCaptionedVideoMetadata: CalculateMetadataFunction<
   CaptionedVideoProps
@@ -286,18 +303,18 @@ Create `remotion/src/Root.tsx`:
 
 ```tsx
 import { Composition } from 'remotion';
-import { CaptionedVideo, calculateCaptionedVideoMetadata } from './CaptionedVideo.js';
-import type { CaptionedVideoProps } from './CaptionedVideo.js';
+import { CaptionedVideo, calculateCaptionedVideoMetadata, captionedVideoPropsSchema } from './CaptionedVideo.js';
 
 export const RemotionRoot: React.FC = () => {
   return (
-    <Composition<Record<string, unknown>, CaptionedVideoProps>
+    <Composition
       id="CaptionedVideo"
       component={CaptionedVideo}
       fps={30}
       width={1080}
       height={1920}
       durationInFrames={300}
+      schema={captionedVideoPropsSchema}
       defaultProps={{ audioSrc: '', captions: [] }}
       calculateMetadata={calculateCaptionedVideoMetadata}
     />
